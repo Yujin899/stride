@@ -151,7 +151,13 @@ export default function HomePage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-1000">
+    <div className="relative space-y-6 sm:space-y-8 animate-in fade-in duration-1000">
+      {/* Ad Image Layered - Universal Visibility (Mobile/Tablet/PC) */}
+      <div className="absolute top-0 left-0 right-0 -m-4 sm:-m-6 lg:-m-8 -mt-[15px] lg:-mt-10 z-40 pointer-events-none opacity-90 overflow-hidden flex justify-center">
+        <img src="/ad-1.png" alt="" className="w-full max-w-[300px] sm:max-w-md lg:max-w-xl h-auto object-contain" />
+      </div>
+
+      <div className="relative z-0 space-y-6 sm:space-y-8">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="flex-1 max-w-2xl">
@@ -208,6 +214,7 @@ export default function HomePage() {
         onAssign={handleAssignSubmit}
         editingPlan={editingPlan}
       />
+      </div>
     </div>
   );
 }
