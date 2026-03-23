@@ -21,6 +21,7 @@ interface PomodoroTimerProps {
 }
 
 export default function PomodoroTimer({ 
+  initialDuration = 25,
   breakDuration = 5,
   lectureId, 
   lectureTitle,
@@ -184,7 +185,7 @@ export default function PomodoroTimer({
   const adjustDuration = (amount: number) => {
     if (isRunning || isRinging) return;
     playClick();
-    setDuration(prev => {
+    setDuration((prev: number) => {
       const next = Math.max(1, Math.min(120, prev + amount));
       setTimeLeft(next * 60);
       return next;
