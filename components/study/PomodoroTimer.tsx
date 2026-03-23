@@ -41,6 +41,8 @@ export default function PomodoroTimer({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioAlarmRef = useRef<HTMLAudioElement | null>(null);
+  const targetEndTimeRef = useRef<number | null>(null);
+  const secondsAtStartOfRunRef = useRef<number>(0);
 
   // Initialize Audio & Notifications
   useEffect(() => {
@@ -87,6 +89,7 @@ export default function PomodoroTimer({
   const handleComplete = useCallback(async () => {
     setIsRunning(false);
     setIsRinging(true);
+    targetEndTimeRef.current = null;
 
     if (audioAlarmRef.current) {
       audioAlarmRef.current.currentTime = 0;
@@ -120,18 +123,40 @@ export default function PomodoroTimer({
     if (onComplete) onComplete();
   }, [mode, duration, onComplete, user, lectureId, lectureTitle, subjectName]);
 
-  // Timer Logic
+  // Timer Logic - Robust background-aware implementation
   useEffect(() => {
     if (isRunning && timeLeft > 0) {
+      // Set target end time if not already set
+      if (!targetEndTimeRef.current) {
+        targetEndTimeRef.current = Date.now() + timeLeft * 1000;
+        secondsAtStartOfRunRef.current = totalSecondsStudied;
+      }
+
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-        if (mode === "work") setTotalSecondsStudied(s => s + 1);
-      }, 1000);
+        const now = Date.now();
+        const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current! - now) / 1000));
+        setTimeLeft(remaining);
+      }, 100); 
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
+      targetEndTimeRef.current = null;
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isRunning, timeLeft, mode]);
+  }, [isRunning, mode]); 
+
+  // Separate effect for totalSecondsStudied to keep it clean
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning && mode === "work") {
+      const startTime = Date.now();
+      const initialStudied = totalSecondsStudied;
+      interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        setTotalSecondsStudied(initialStudied + elapsed);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning, mode, totalSecondsStudied]);
 
   useEffect(() => {
     if (timeLeft === 0 && isRunning) {
@@ -155,12 +180,19 @@ export default function PomodoroTimer({
       return;
     }
     playClick();
+    if (!isRunning) {
+      // Starting: will be handled by useEffect
+    } else {
+      // Pausing: clear target
+      targetEndTimeRef.current = null;
+    }
     setIsRunning(!isRunning);
   };
 
   const resetTimer = () => {
     setIsRunning(false);
     setIsRinging(false);
+    targetEndTimeRef.current = null;
     setMode("work");
     setTimeLeft(duration * 60);
     playClick();
@@ -173,10 +205,10 @@ export default function PomodoroTimer({
   const endSession = () => {
     setIsRunning(false);
     setMode("completed");
+    targetEndTimeRef.current = null;
     if (mode === "work") {
-      const elapsed = (duration * 60) - timeLeft;
-      saveStats(elapsed);
-      setTotalSecondsStudied(prev => prev + elapsed);
+      // Save what was studied
+      saveStats(duration * 60 - timeLeft);
     }
     if (audioAlarmRef.current) { audioAlarmRef.current.pause(); }
     setShowBreakPrompt(false);

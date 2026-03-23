@@ -75,8 +75,8 @@ export default function QuizPage() {
     if (isCorrect) {
       setScore(prev => prev + 1);
     } else if (user) {
-      // Background save mistake
-      saveMistake(user.id, lecture!.id, lecture!.subjectId, currentQuestion.id).catch(err => {
+      // Background save mistake with the index of the wrong answer chosen
+      saveMistake(user.id, lecture!.id, lecture!.subjectId, currentQuestion.id, index).catch(err => {
         console.error("Failed to save mistake:", err);
       });
     }

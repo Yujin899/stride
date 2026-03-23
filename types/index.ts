@@ -112,6 +112,7 @@ export interface Mistake {
   count: number;           // how many times got it wrong
   isReviewed: boolean;     // default: false
   lastSeenAt: Timestamp;
+  wrongAnswerIndex?: number; // Added to store the actual wrong choice
 }
 
 export interface StudySession {

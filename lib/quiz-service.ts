@@ -33,7 +33,8 @@ export async function saveMistake(
   userId: string,
   lectureId: string,
   subjectId: string,
-  questionId: string
+  questionId: string,
+  wrongAnswerIndex: number
 ) {
   try {
     const mistakesCol = collection(db, "mistakes");
@@ -54,6 +55,7 @@ export async function saveMistake(
         count: increment(1),
         lastSeenAt: Timestamp.now(),
         isReviewed: false,
+        wrongAnswerIndex: wrongAnswerIndex, // Keep track of the latest wrong choice
       });
       return existingDoc.id;
     } else {
@@ -67,6 +69,7 @@ export async function saveMistake(
         count: 1,
         isReviewed: false,
         lastSeenAt: Timestamp.now(),
+        wrongAnswerIndex: wrongAnswerIndex,
       };
       await setDoc(newMistakeRef, newMistake);
       return newMistakeRef.id;

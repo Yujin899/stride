@@ -200,7 +200,11 @@ export default function MistakesPage() {
                           <X size={18} className="shrink-0 mt-0.5" />
                           <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Your Answer</p>
-                            <p className="text-sm font-bold">{mistake.question?.options[mistake.question.correctIndex === 0 ? 1 : 0] /* Mocked previous wrong answer logic for now */ || "Wrong selection"}</p>
+                            <p className="text-sm font-bold">
+                              {mistake.wrongAnswerIndex !== undefined 
+                                ? mistake.question?.options[mistake.wrongAnswerIndex] 
+                                : "Wrong selection"}
+                            </p>
                           </div>
                         </div>
 
