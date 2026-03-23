@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Pause, RotateCcw, Plus, Minus, Square, CheckCircle2, Home } from "lucide-react";
+import { Play, Pause, RotateCcw, Plus, Minus, Square, CheckCircle2 } from "lucide-react";
 import { Comfortaa, Nunito } from "next/font/google";
 import { useRouter } from "next/navigation";
 import TimerDisplay from "./TimerDisplay";
@@ -263,10 +263,16 @@ export default function PomodoroTimer({
                 Go to Quiz <CheckCircle2 size={20} />
               </button>
               <button
-                onClick={() => router.push("/home")}
+                onClick={() => {
+                  setMode("work");
+                  setTimeLeft(duration * 60);
+                  setIsRunning(false);
+                  setIsRinging(false);
+                  targetEndTimeRef.current = null;
+                }}
                 className="bg-white text-(--text) border-2 border-[rgba(212,184,122,0.3)] px-6 py-3 rounded-full font-black shadow-sm hover:bg-[#FEFCF7] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
-                Go to Home <Home size={20} />
+                Start New Session <RotateCcw size={20} />
               </button>
             </div>
           </div>
