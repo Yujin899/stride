@@ -13,6 +13,7 @@ type SessionMode = "work" | "break" | "completed";
 
 interface PomodoroTimerProps {
   initialDuration?: number; // in minutes
+  breakDuration?: number; // in minutes
   lectureId?: string;
   lectureTitle?: string;
   subjectName?: string;
@@ -20,7 +21,7 @@ interface PomodoroTimerProps {
 }
 
 export default function PomodoroTimer({ 
-  initialDuration = 25, 
+  breakDuration = 5,
   lectureId, 
   lectureTitle,
   subjectName,
@@ -133,7 +134,10 @@ export default function PomodoroTimer({
 
   useEffect(() => {
     if (timeLeft === 0 && isRunning) {
-      handleComplete();
+      // Use microtask to avoid cascading render warning
+      Promise.resolve().then(() => {
+        handleComplete();
+      });
       return;
     }
   }, [timeLeft, isRunning, handleComplete]);
@@ -188,12 +192,12 @@ export default function PomodoroTimer({
   };
 
   // Render Helpers
-  const totalElapsed = (mode === "work" ? duration * 60 : 5 * 60) - timeLeft;
-  const currentTotal = (mode === "work" ? duration * 60 : 5 * 60);
+  const totalElapsed = (mode === "work" ? duration * 60 : breakDuration * 60) - timeLeft;
+  const currentTotal = (mode === "work" ? duration * 60 : breakDuration * 60);
   const minuteRotation = (totalElapsed / currentTotal) * 360;
   const secondRotation = totalElapsed * 6;
   const digitalTime = timeLeft >= 60 ? Math.floor(timeLeft / 60) : `${timeLeft}s`;
-  const activeDuration = mode === "work" ? duration : 5;
+  const activeDuration = mode === "work" ? duration : breakDuration;
   const qValues = {
     top: 0,
     right: Math.round(activeDuration / 4),
@@ -247,7 +251,7 @@ export default function PomodoroTimer({
               <button
                 onClick={() => {
                   setMode("break");
-                  setTimeLeft(5 * 60);
+                  setTimeLeft(breakDuration * 60);
                   setIsRinging(false);
                   setShowBreakPrompt(false);
                   if (audioAlarmRef.current) { audioAlarmRef.current.pause(); audioAlarmRef.current.currentTime = 0; }
@@ -270,12 +274,34 @@ export default function PomodoroTimer({
 
       {mode !== "completed" && (
         <div className="flex flex-col items-center gap-6">
-          <div className="flex items-center gap-6">
-            <button onClick={() => adjustDuration(-5)} disabled={isRunning || isRinging || mode !== "work"} className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-(--text) border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] transition-all disabled:opacity-50"><Minus size={24} /></button>
-            <div className="flex flex-col items-center">
-              <span className={`${nunito.className} text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1`}>{mode === "work" ? "Study Session" : "Refresh Break"}</span>
+          <div className="flex items-center gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <button 
+              onClick={() => adjustDuration(-5)} 
+              disabled={isRunning || isRinging || mode !== "work"} 
+              className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-(--text) border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
+            >
+              <Minus size={22} />
+            </button>
+            
+            <div className="flex flex-col items-center min-w-[120px]">
+              <span className={`${nunito.className} text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 opacity-70`}>
+                {mode === "work" ? "Study Session" : "Refresh Break"}
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span className={`${comfortaa.className} text-2xl font-black text-primary`}>
+                  {mode === "work" ? duration : 5}
+                </span>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">min</span>
+              </div>
             </div>
-            <button onClick={() => adjustDuration(5)} disabled={isRunning || isRinging || mode !== "work"} className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-(--text) border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] transition-all disabled:opacity-50"><Plus size={24} /></button>
+
+            <button 
+              onClick={() => adjustDuration(5)} 
+              disabled={isRunning || isRinging || mode !== "work"} 
+              className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-(--text) border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
+            >
+              <Plus size={22} />
+            </button>
           </div>
 
           <div className="flex items-center gap-6">

@@ -41,6 +41,11 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     fetchUserData();
   }, [user?.id]);
 
+  // Global Scroll to Top on Navigation
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   if (isLoading || (!user && !pathname.includes("/login"))) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

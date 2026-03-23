@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
 import { Loader2, Delete, Leaf } from "lucide-react";
+import { playClick } from "@/lib/audio";
 
 export default function LoginForm() {
   const [name, setName] = useState("");
@@ -12,10 +14,6 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const { login, isLoading } = useAuthStore();
   const router = useRouter();
-
-  const playClick = () => {
-    new Audio("/sounds/click.mp3").play().catch(() => {});
-  };
 
   const handleNumberClick = (num: number) => {
     playClick();

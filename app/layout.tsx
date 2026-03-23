@@ -14,6 +14,10 @@ const nunito = Nunito({
   variable: "--font-body",
 });
 
+import AuthInitializer from "@/components/auth/AuthInitializer";
+import AmbiancePlayer from "@/components/audio/AmbiancePlayer";
+import PWAInstallPrompt from "@/components/layout/PWAInstallPrompt";
+
 export const metadata: Metadata = {
   title: "Stride — Woodland Quest",
   description: "A gamified study manager for dental students.",
@@ -32,9 +36,6 @@ export const viewport = {
   themeColor: "#FEFCF7",
 };
 
-import AuthInitializer from "@/components/auth/AuthInitializer";
-import AmbiancePlayer from "@/components/audio/AmbiancePlayer";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -48,6 +49,7 @@ export default function RootLayout({
       <body className={`${nunito.className} min-h-full flex flex-col`}>
         <AuthInitializer>
           <AmbiancePlayer />
+          <PWAInstallPrompt />
           {children}
         </AuthInitializer>
       </body>

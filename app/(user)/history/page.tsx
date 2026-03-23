@@ -30,7 +30,7 @@ export default function HistoryPage() {
   const totalXP = Math.floor(totalMinutes / 10);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-10 animate-in fade-in duration-500">
+    <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500">
       {/* Header with Stats */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">

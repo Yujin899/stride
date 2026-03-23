@@ -21,6 +21,9 @@ export default function StudyPage() {
 
   const [workDuration, setWorkDuration] = useState(25);
   const [breakDuration, setBreakDuration] = useState(5);
+  const [activeDuration, setActiveDuration] = useState(25);
+  const [activeBreak, setActiveBreak] = useState(5);
+  const [timerKey, setTimerKey] = useState(0);
 
   // Fetch Data
   useEffect(() => {
@@ -59,7 +62,7 @@ export default function StudyPage() {
   }
 
   return (
-    <div className={`min-h-screen p-6 sm:p-12 max-w-4xl mx-auto space-y-12 ${nunito.className}`}>
+    <div className={`max-w-4xl mx-auto space-y-12 ${nunito.className}`}>
       {/* Navigation */}
       <Link 
         href="/home"
@@ -87,7 +90,9 @@ export default function StudyPage() {
 
       {/* Timer Section */}
       <PomodoroTimer 
-        initialDuration={workDuration} 
+        key={timerKey}
+        initialDuration={activeDuration} 
+        breakDuration={activeBreak}
         lectureId={lectureId as string}
         lectureTitle={lecture ? `Lecture ${lecture.order}` : undefined}
         subjectName={subject?.name}
@@ -104,10 +109,10 @@ export default function StudyPage() {
           </h3>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-6 relative">
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-2">Work Duration</label>
-            <div className="flex items-center bg-white rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center bg-white rounded-2xl p-4 shadow-sm group focus-within:ring-2 ring-primary/20 transition-all">
               <input 
                 type="number" 
                 value={workDuration}
@@ -119,7 +124,7 @@ export default function StudyPage() {
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-2">Break Duration</label>
-            <div className="flex items-center bg-white rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center bg-white rounded-2xl p-4 shadow-sm group focus-within:ring-2 ring-primary/20 transition-all">
               <input 
                 type="number" 
                 value={breakDuration}
@@ -128,6 +133,22 @@ export default function StudyPage() {
               />
               <span className="text-xs font-bold text-muted-foreground">MIN</span>
             </div>
+          </div>
+
+          <div className="col-span-2 pt-4">
+            <button 
+              onClick={() => {
+                setActiveDuration(workDuration);
+                setActiveBreak(breakDuration); // We could pass this to timer too if break is dynamic
+                setTimerKey(prev => prev + 1); // Refresh timer with new settings
+              }}
+              className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              Update Timer Settings 🌿
+            </button>
+            <p className="text-[10px] text-center mt-3 font-bold text-muted-foreground uppercase tracking-tighter opacity-50">
+              Note: Updating will reset the current session
+            </p>
           </div>
         </div>
       </div>

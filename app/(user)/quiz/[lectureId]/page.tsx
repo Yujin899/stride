@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Comfortaa, Nunito } from "next/font/google";
@@ -8,6 +8,7 @@ import { ChevronLeft, CheckCircle2, XCircle, Home, RefreshCcw, Loader2 } from "l
 import Link from "next/link";
 import { fetchQuiz, saveMistake } from "@/lib/quiz-service";
 import { useAuthStore } from "@/store/authStore";
+import { playClick } from "@/lib/audio";
 import { Lecture } from "@/types";
 
 const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
@@ -25,6 +26,8 @@ export default function QuizPage() {
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const activeBulletRef = useRef<HTMLDivElement>(null);
 
   // Fetch Quiz Data
   useEffect(() => {
@@ -42,12 +45,28 @@ export default function QuizPage() {
     init();
   }, [lectureId]);
 
+  // 2. Scroll to top on question change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentIndex, isFinished]);
+
+  // 3. Auto-scroll progress bullets
+  useEffect(() => {
+    if (activeBulletRef.current) {
+      activeBulletRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [currentIndex]);
+
   const questions = lecture?.questions || [];
   const currentQuestion = questions[currentIndex];
 
   const handleOptionClick = async (index: number) => {
-    // Play click sound
-    new Audio("/sounds/click.mp3").play().catch(() => {});
+    // Play high-performance click
+    playClick();
 
     setSelectedOption(index);
     setIsAnswered(true);
@@ -64,8 +83,8 @@ export default function QuizPage() {
   };
 
   const nextQuestion = () => {
-    // Play transition sound
-    new Audio("/sounds/click.mp3").play().catch(() => {});
+    // Play high-performance click
+    playClick();
 
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
@@ -144,7 +163,7 @@ export default function QuizPage() {
   }
 
   return (
-    <div className={`min-h-screen bg-(--background) py-10 px-4 sm:px-8 flex flex-col items-center ${nunito.className}`}>
+    <div className={`flex flex-col items-center ${nunito.className}`}>
       {/* Navigation */}
       <div className="w-full max-w-3xl flex items-center justify-between mb-8">
         <Link 
@@ -154,25 +173,33 @@ export default function QuizPage() {
           <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           Back
         </Link>
-        <div className="text-[10px] font-bold text-(--muted-foreground) uppercase tracking-[0.2em]">
+        <div className="text-[10px] sm:text-xs font-black text-(--muted-foreground) uppercase tracking-[0.2em] bg-white/50 px-3 py-1 rounded-full">
           Boss Fight: Lecture {lecture.order}
         </div>
-        <div className="w-20" /> {/* Spacer */}
+        <div className="hidden sm:block w-20" /> {/* Spacer */}
       </div>
 
-      {/* Tomato Progress Row */}
       <div className="w-full max-w-3xl mb-8 flex justify-center">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-2 px-4 bg-white/50 rounded-full shadow-sm backdrop-blur-sm">
+        <div 
+          ref={scrollContainerRef}
+          className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3 px-6 bg-white/80 rounded-full shadow-sm backdrop-blur-md border border-white/20"
+        >
           {questions.map((_, idx) => (
             <div 
               key={idx} 
-              className={`relative w-8 h-8 flex-shrink-0 transition-all duration-300 ${
+              ref={idx === currentIndex ? activeBulletRef : null}
+              className={`relative w-8 h-8 flex-shrink-0 transition-all duration-500 transform ${
+                idx === currentIndex ? "scale-125 z-10" : "scale-100"
+              } ${
                 idx < currentIndex ? "opacity-100" : 
                 idx === currentIndex ? "opacity-100" : 
-                "opacity-30 grayscale"
+                "opacity-20 grayscale"
               }`}
             >
               <Image src="/tomato.png" alt="Tomato" fill className="object-contain" />
+              {idx === currentIndex && (
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full animate-pulse" />
+              )}
             </div>
           ))}
         </div>
