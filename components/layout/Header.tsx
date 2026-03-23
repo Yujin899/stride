@@ -10,7 +10,7 @@ interface HeaderProps {
 export default function Header({ streak }: HeaderProps) {
 
   return (
-    <header className="lg:hidden fixed top-0 left-0 right-0 h-[56px] bg-surface flex items-center justify-between px-4 z-40 bg-opacity-95 backdrop-blur-sm shadow-sm">
+    <header className="lg:hidden relative h-[56px] flex items-center justify-between px-4 z-50">
       <Link href="/home" className="flex items-center">
         <img src="/logo.png" alt="Stride" className="h-10 w-auto object-contain" />
       </Link>

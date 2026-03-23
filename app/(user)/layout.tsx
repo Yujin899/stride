@@ -57,7 +57,14 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Ad Image Layered behind header as absolute background - ONLY ON HOME */}
+      {pathname === "/home" && (
+        <div className="lg:hidden absolute top-0 left-0 right-0 z-40 pointer-events-none">
+          <img src="/ad-1.png" alt="" className="w-full h-auto" />
+        </div>
+      )}
+
       {/* Desktop Sidebar */}
       <Sidebar user={user} role={role} streak={streak} />
 
@@ -65,7 +72,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
       <Header user={user} streak={streak} />
 
       {/* Main Content Area */}
-      <main className="ml-0 lg:ml-[240px] pt-[56px] lg:pt-0 pb-[72px] lg:pb-0 transition-all duration-300">
+      <main className="ml-0 lg:ml-[240px] pt-0 lg:pt-0 pb-[72px] lg:pb-0 transition-all duration-300 relative z-10">
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
           {children}
         </div>
