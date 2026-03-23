@@ -29,6 +29,16 @@
       "src": "/tomato.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/history.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/settings.png",
+      "sizes": "192x192",
+      "type": "image/png"
     }
   ]
 }
