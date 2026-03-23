@@ -10,7 +10,7 @@ const JWKS = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
 
@@ -39,14 +39,14 @@ export async function middleware(req: NextRequest) {
       // 3. Role check for admin paths
       if (isAdminPath) {
         const decoded = decodeJwt(token);
-        console.log("Middleware: Decoded Role =", decoded.role, "UID =", decoded.sub);
+        console.log("Proxy: Decoded Role =", decoded.role, "UID =", decoded.sub);
         if (decoded.role !== "admin") {
-          console.warn("Middleware: Non-admin trying to access admin path. Redirecting to /home");
+          console.warn("Proxy: Non-admin trying to access admin path. Redirecting to /home");
           return NextResponse.redirect(new URL("/home", req.url));
         }
       }
     } catch (error) {
-      console.error("Middleware Auth Error:", error);
+      console.error("Proxy Auth Error:", error);
       return NextResponse.redirect(new URL("/login", req.url));
     }
   }
