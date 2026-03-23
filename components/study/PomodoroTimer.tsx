@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Pause, RotateCcw, Plus, Minus, Square, CheckCircle2, Home, Rocket, ExternalLink } from "lucide-react";
+import { Play, Pause, RotateCcw, Plus, Minus, Square, CheckCircle2, Home } from "lucide-react";
 import { Comfortaa, Nunito } from "next/font/google";
 import { useRouter } from "next/navigation";
 import TimerDisplay from "./TimerDisplay";
-import { useImmersiveStore } from "@/lib/store";
-import { createRoot } from "react-dom/client";
 import { saveStudySession } from "@/lib/weekplan-service";
 import { useAuthStore } from "@/store/authStore";
 
@@ -29,7 +27,6 @@ export default function PomodoroTimer({
   onComplete 
 }: PomodoroTimerProps) {
   const router = useRouter();
-  const { isTimerFloating, setTimerFloating } = useImmersiveStore();
   const { user } = useAuthStore();
 
   const [mode, setMode] = useState<SessionMode>("work");
@@ -42,7 +39,6 @@ export default function PomodoroTimer({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioAlarmRef = useRef<HTMLAudioElement | null>(null);
-  const pipWindowRef = useRef<any>(null);
 
   // Initialize Audio & Notifications
   useEffect(() => {
@@ -66,7 +62,6 @@ export default function PomodoroTimer({
         audioAlarmRef.current.pause();
         audioAlarmRef.current = null;
       }
-      if (pipWindowRef.current) pipWindowRef.current.close();
     };
   }, []);
 
@@ -143,86 +138,6 @@ export default function PomodoroTimer({
     }
   }, [timeLeft, isRunning, handleComplete]);
 
-  // Document Picture-in-Picture Logic
-  const togglePiP = async () => {
-    if (pipWindowRef.current) {
-      pipWindowRef.current.close();
-      return;
-    }
-
-    if (!('documentPictureInPicture' in window)) {
-      alert("Scholarly Note: Document Picture-in-Picture is only supported in modern Chrome/Edge browsers. Please upgrade your tome.");
-      return;
-    }
-
-    try {
-      const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
-        width: 200,
-        height: 250,
-      });
-
-      pipWindowRef.current = pipWindow;
-      setTimerFloating(true);
-
-      // Copy styles
-      [...document.styleSheets].forEach((styleSheet) => {
-        try {
-          if (styleSheet.cssRules) {
-            const newStyle = pipWindow.document.createElement('style');
-            [...styleSheet.cssRules].forEach((rule) => {
-              newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
-            });
-            pipWindow.document.head.appendChild(newStyle);
-          }
-        } catch (e) {
-          const newLink = pipWindow.document.createElement('link');
-          newLink.rel = 'stylesheet';
-          newLink.href = (styleSheet as any).href;
-          pipWindow.document.head.appendChild(newLink);
-        }
-      });
-
-      const pipRoot = pipWindow.document.createElement('div');
-      pipRoot.id = 'pip-root';
-      pipWindow.document.body.appendChild(pipRoot);
-
-      const root = createRoot(pipRoot);
-      const updatePiP = () => {
-        root.render(
-          <TimerDisplay 
-            mode={mode} 
-            duration={duration} 
-            timeLeft={timeLeft} 
-            isRinging={isRinging} 
-            minuteRotation={minuteRotation} 
-            secondRotation={secondRotation} 
-            digitalTime={digitalTime} 
-            qValues={qValues}
-            isPiP={true}
-          />
-        );
-      };
-
-      updatePiP();
-      pipWindow.addEventListener('pagehide', () => {
-        pipWindowRef.current = null;
-        setTimerFloating(false);
-      });
-
-      // Maintain internal ref for sync
-      (pipWindow as any).timerUpdate = updatePiP;
-
-    } catch (err) {
-      console.error("PiP failed:", err);
-    }
-  };
-
-  // Sync state with PiP
-  useEffect(() => {
-    if (pipWindowRef.current?.timerUpdate) {
-      pipWindowRef.current.timerUpdate();
-    }
-  }, [timeLeft, mode, isRinging, isRunning]);
 
   const toggleTimer = () => {
     if (isRinging) {
@@ -300,14 +215,6 @@ export default function PomodoroTimer({
           qValues={qValues} 
         />
         
-        {/* Floating Toggle Button */}
-        <button 
-          onClick={togglePiP}
-          className="absolute -top-4 -right-4 w-12 h-12 rounded-full bg-white border-2 border-primary/20 shadow-lg flex items-center justify-center text-primary hover:scale-110 active:scale-90 transition-all z-20"
-          title="Float Timer"
-        >
-          {isTimerFloating ? <ExternalLink size={20} /> : <Rocket size={20} />}
-        </button>
 
         {mode === "completed" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-30 animate-in fade-in zoom-in duration-300 bg-[#FEFCF7]/90 backdrop-blur-sm rounded-full">

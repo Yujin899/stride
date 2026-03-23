@@ -19,7 +19,6 @@ interface TimerDisplayProps {
     bottom: number;
     left: number;
   };
-  isPiP?: boolean;
 }
 
 export default function TimerDisplay({ 
@@ -28,14 +27,13 @@ export default function TimerDisplay({
   minuteRotation, 
   secondRotation, 
   digitalTime, 
-  qValues,
-  isPiP = false
+  qValues
 }: TimerDisplayProps) {
   
   return (
-    <div className={`relative flex flex-col items-center justify-center ${isPiP ? 'w-full h-full p-2 bg-[#F7FAF3]' : 'w-80 h-80 mx-auto'} transition-all duration-300 ${isRinging ? "animate-ring scale-110" : ""}`}>
+    <div className={`relative flex flex-col items-center justify-center w-80 h-80 mx-auto transition-all duration-300 ${isRinging ? "animate-ring scale-110" : ""}`}>
       {/* Clock Face Rendering */}
-      <div className={`relative ${isPiP ? 'w-32 h-32' : 'w-full h-full'} transition-all`}>
+      <div className="relative w-full h-full transition-all">
         <div className="absolute inset-0 rounded-full overflow-hidden">
           <Image src="/clock.png" alt="Clock" fill className="object-contain" priority />
         </div>
@@ -55,8 +53,8 @@ export default function TimerDisplay({
       </div>
 
       {/* Digital Countdown */}
-      <div className={`mt-4 bg-white rounded-2xl border-2 ${mode === 'work' ? 'border-tomato/10' : 'border-green-100'} ${isPiP ? 'px-4 py-1' : 'px-8 py-3 shadow-warm'}`}>
-        <span className={`${comfortaa.className} ${isPiP ? 'text-2xl' : 'text-5xl'} font-black ${mode === "work" ? "text-tomato" : "text-green-500"} tracking-tighter`}>
+      <div className={`mt-4 bg-white rounded-2xl border-2 ${mode === 'work' ? 'border-tomato/10' : 'border-green-100'} px-8 py-3 shadow-warm`}>
+        <span className={`${comfortaa.className} text-5xl font-black ${mode === "work" ? "text-tomato" : "text-green-500"} tracking-tighter`}>
           {digitalTime}
         </span>
       </div>

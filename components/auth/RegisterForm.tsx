@@ -15,7 +15,12 @@ export default function RegisterForm() {
   const { register, isLoading } = useAuthStore();
   const router = useRouter();
 
+  const playClick = () => {
+    new Audio("/sounds/click.mp3").play().catch(() => {});
+  };
+
   const handleNumberClick = (num: number) => {
+    playClick();
     if (activeField === "pin") {
       if (pin.length < 4) {
         const nextPin = [...pin, num];
@@ -34,6 +39,7 @@ export default function RegisterForm() {
   };
 
   const handleBackspace = () => {
+    playClick();
     if (activeField === "confirmPin") {
       if (confirmPin.length > 0) {
         setConfirmPin((prev) => prev.slice(0, -1));
@@ -46,6 +52,7 @@ export default function RegisterForm() {
   };
 
   const handleSubmit = async () => {
+    playClick();
     if (name.length < 2) {
       setError("Hero name must be at least 2 characters");
       return;

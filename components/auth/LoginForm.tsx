@@ -13,7 +13,12 @@ export default function LoginForm() {
   const { login, isLoading } = useAuthStore();
   const router = useRouter();
 
+  const playClick = () => {
+    new Audio("/sounds/click.mp3").play().catch(() => {});
+  };
+
   const handleNumberClick = (num: number) => {
+    playClick();
     if (pin.length < 4) {
       setPin((prev) => [...prev, num]);
       setError(null);
@@ -21,10 +26,12 @@ export default function LoginForm() {
   };
 
   const handleBackspace = () => {
+    playClick();
     setPin((prev) => prev.slice(0, -1));
   };
 
   const handleSubmit = async () => {
+    playClick();
     if (!name) {
       setError("Hero name required");
       return;
