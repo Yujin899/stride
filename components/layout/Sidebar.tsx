@@ -40,7 +40,7 @@ export default function Sidebar({ user, role, streak }: SidebarProps) {
     { name: "Study", href: "/study", image: "/study.png", icon: <BookOpen size={20} /> },
     { name: "Mistakes", href: "/mistakes", image: "/mistakes.png", icon: <AlertCircle size={20} /> },
     { name: "History", href: "/history", image: "/history.png", icon: <History size={20} /> },
-    ...(role === "admin" ? [{ name: "Admin", href: "/admin/upload", image: null, icon: <ShieldCheck size={20} /> }] : []),
+    ...(role === "admin" ? [{ name: "Admin", href: "/admin", image: null, icon: <ShieldCheck size={20} /> }] : []),
   ];
 
   return (

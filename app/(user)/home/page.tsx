@@ -149,7 +149,7 @@ export default function HomePage() {
     let total = 0;
     let done = 0;
     
-    Object.values(weekPlan.days).forEach((dayPlans: DayPlan[] | any) => {
+    Object.values(weekPlan.days).forEach((dayPlans: DayPlan[] | DayPlan) => {
       const plans = Array.isArray(dayPlans) ? dayPlans : (dayPlans.status !== 'empty' ? [dayPlans as DayPlan] : []);
       plans.forEach(p => {
         total++;
@@ -266,7 +266,7 @@ export default function HomePage() {
           </button>
 
           <button 
-            onClick={() => router.push("/admin/upload")}
+            onClick={() => router.push("/admin")}
             className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-blue-500/5!"
           >
             <div>

@@ -150,11 +150,12 @@ export async function fetchLecturesBySubject(subjectId: string): Promise<Lecture
   try {
     const q = query(
       collection(db, "lectures"), 
-      where("subjectId", "==", subjectId),
-      orderBy("order", "asc")
+      where("subjectId", "==", subjectId)
     );
     const snap = await getDocs(q);
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lecture));
+    return snap.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as Lecture))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
   } catch (err) {
     console.error("Error fetching lectures:", err);
     return [];

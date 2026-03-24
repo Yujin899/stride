@@ -35,7 +35,7 @@ export default function BottomNav({ role }: BottomNavProps) {
   ];
 
   if (role === "admin") {
-    navLinks.push({ name: "Admin", href: "/admin/upload", icon: <ShieldCheck size={28} className="text-primary" /> });
+    navLinks.push({ name: "Admin", href: "/admin", icon: <ShieldCheck size={28} className="text-primary" /> });
   }
 
   return (
@@ -75,7 +75,7 @@ export default function BottomNav({ role }: BottomNavProps) {
       {/* Mobile Settings Overlay */}
       {showSettings && (
         <div className="absolute bottom-[80px] left-4 right-4 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="wooden-panel p-5! space-y-5 rounded-[2rem] shadow-2xl border-4 border-primary/20">
+          <div className="wooden-panel p-5! space-y-5 rounded-4xl shadow-2xl border-4 border-primary/20">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                 Ambiance 🌿
