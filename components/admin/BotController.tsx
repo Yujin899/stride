@@ -223,6 +223,7 @@ export default function BotController() {
             <option value="m-0.5">🧪 Test Mode (30 Seconds)</option>
             <option value="m-1">🧪 Test Mode (1 Minute)</option>
             <option value="m-2">🧪 Test Mode (2 Minutes)</option>
+            <option value="m-5">🧪 Test Mode (5 Minutes)</option>
             <option value={1}>Every 1 Hour</option>
             <option value={2}>Every 2 Hours</option>
             <option value={3}>Every 3 Hours</option>
