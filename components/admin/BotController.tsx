@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getBotConfig, updateBotConfig, triggerBotCron } from "@/lib/bot-service";
+import { getBotConfig, updateBotConfig } from "@/lib/bot-service";
 import { fetchAllSubjects } from "@/lib/admin-service";
 import { BotConfig, Subject } from "@/types";
 import { Loader2, Send, Settings, Save, Sparkles, MessageSquare } from "lucide-react";
@@ -50,11 +50,13 @@ export default function BotController() {
     setIsTriggering(true);
     setStatus(null);
     try {
-      const res = await triggerBotCron();
-      if (res.success) {
-        setStatus({ type: "success", msg: `Poll sent: ${res.question}` });
+      const res = await fetch("/api/bot/trigger", { method: "POST" });
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        setStatus({ type: "success", msg: `Poll sent: ${data.question}` });
       } else {
-        setStatus({ type: "error", msg: res.error || "Execution failed" });
+        setStatus({ type: "error", msg: data.error || "Execution failed" });
       }
     } catch {
       setStatus({ type: "error", msg: "Bot failure. Check logs." });
