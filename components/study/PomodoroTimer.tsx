@@ -256,7 +256,7 @@ export default function PomodoroTimer({
               {/* Button 1: Go to Quiz */}
               <button
                 onClick={() => router.push(`/quiz/${lectureId || "latest"}`)}
-                className="bg-primary text-white px-5 py-4 rounded-2xl font-black shadow-lg hover:translate-y-[-2px] active:translate-y-[1px] transition-all flex items-center justify-center gap-3 group"
+                className="bg-primary text-white px-5 py-4 rounded-2xl font-black shadow-lg hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
               >
                 Go to Quiz <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
               </button>
@@ -271,7 +271,7 @@ export default function PomodoroTimer({
                     setIsRinging(false);
                     if (audioAlarmRef.current) { audioAlarmRef.current.pause(); audioAlarmRef.current.currentTime = 0; }
                   }}
-                  className="bg-[#68D391] text-white px-5 py-4 rounded-xl font-black shadow-lg hover:translate-y-[-2px] active:translate-y-[1px] transition-all flex items-center justify-center gap-3 group"
+                  className="bg-[#68D391] text-white px-5 py-4 rounded-xl font-black shadow-lg hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
                 >
                   Start Break 🌿 <Coffee size={18} className="group-hover:bounce transition-transform" />
                 </button>
@@ -285,16 +285,16 @@ export default function PomodoroTimer({
                     setIsRinging(false);
                     if (audioAlarmRef.current) { audioAlarmRef.current.pause(); audioAlarmRef.current.currentTime = 0; }
                   }}
-                  className="bg-white text-primary border-2 border-primary/20 px-5 py-4 rounded-xl font-black shadow-sm hover:translate-y-[-2px] active:translate-y-[1px] transition-all flex items-center justify-center gap-3 group"
+                  className="bg-white text-primary border-2 border-primary/20 px-5 py-4 rounded-xl font-black shadow-sm hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
                 >
-                  {isManualEnd ? "Another Session" : "New Session"} <RotateCcw size={18} className="group-hover:rotate-[-45deg] transition-transform" />
+                  {isManualEnd ? "Another Session" : "New Session"} <RotateCcw size={18} className="group-hover:-rotate-45 transition-transform" />
                 </button>
               )}
 
               {/* Button 3: Go to Home */}
               <button
                 onClick={() => router.push("/")}
-                className="bg-white text-(--text) border-2 border-[rgba(212,184,122,0.3)] px-5 py-4 rounded-xl font-black shadow-sm hover:translate-y-[-2px] active:translate-y-[1px] transition-all flex items-center justify-center gap-3 group"
+                className="bg-white text-(--text) border-2 border-[rgba(212,184,122,0.3)] px-5 py-4 rounded-xl font-black shadow-sm hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
               >
                 Go to Home <Home size={18} className="group-hover:scale-110 transition-transform" />
               </button>

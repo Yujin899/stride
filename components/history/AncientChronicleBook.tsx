@@ -337,7 +337,7 @@ export default function AncientChronicleBook({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const [particles, setParticles] = useState<{ id: number; x: number; y: number; config: any }[]>([]);
+  const [particles, setParticles] = useState<{ id: number; x: number; y: number; config: ParticleConfig }[]>([]);
   const pidRef = useRef(0);
 
   const handleRubComplete = useCallback((x: number, y: number) => {

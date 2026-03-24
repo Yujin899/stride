@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { comfortaa, nunito } from "@/lib/fonts";
+import "./globals.css";
 
 import AuthInitializer from "@/components/auth/AuthInitializer";
 import AmbiancePlayer from "@/components/audio/AmbiancePlayer";
