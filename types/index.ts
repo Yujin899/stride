@@ -132,4 +132,6 @@ export interface BotConfig {
   subjectId: string;        // "random" or subjectId
   chatId?: string;
   lastSentAt?: Timestamp;
+  isEnabled: boolean;       // Auto-Pilot toggle
+  intervalHours: number;    // Frequency (1, 2, 3...)
 }

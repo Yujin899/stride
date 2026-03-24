@@ -33,7 +33,7 @@ export async function POST(_req: NextRequest) {
     }
 
     console.log("Bot Trigger: Invoking triggerBotCron...");
-    const result = await triggerBotCron();
+    const result = await triggerBotCron(true);
     console.log("Bot Trigger: Result", result);
     return NextResponse.json(result);
   } catch (err) {

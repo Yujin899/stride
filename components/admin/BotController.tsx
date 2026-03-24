@@ -123,7 +123,56 @@ export default function BotController() {
             className="w-full bg-surface border-2 border-border/10 rounded-xl py-3 px-4 text-sm font-bold focus:border-primary outline-hidden transition-colors"
           />
         </div>
+
+        {/* Auto-Pilot Toggle */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 flex items-center gap-2">
+            <Sparkles size={12} className="text-blue-500" /> Auto-Pilot Status
+          </label>
+          <div className="flex items-center gap-3 bg-surface border-2 border-border/10 rounded-xl py-2 px-4">
+            <button 
+              onClick={() => setConfig({ ...config!, isEnabled: !config?.isEnabled })}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${config?.isEnabled ? 'bg-primary' : 'bg-gray-200'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${config?.isEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+            <span className="text-sm font-bold">{config?.isEnabled ? "ENABLED" : "PAUSED"}</span>
+          </div>
+        </div>
+
+        {/* Interval Selector */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 flex items-center gap-2">
+            <Loader2 size={12} className="text-amber-500" /> Poll Frequency
+          </label>
+          <select 
+            value={config?.intervalHours || 2}
+            onChange={(e) => setConfig({ ...config!, intervalHours: parseInt(e.target.value) })}
+            className="w-full bg-surface border-2 border-border/10 rounded-xl py-3 px-4 text-sm font-bold focus:border-amber-500 outline-hidden transition-colors"
+          >
+            <option value={1}>Every 1 Hour</option>
+            <option value={2}>Every 2 Hours</option>
+            <option value={3}>Every 3 Hours</option>
+            <option value={6}>Every 6 Hours</option>
+            <option value={12}>Every 12 Hours</option>
+            <option value={24}>Once per Day</option>
+          </select>
+        </div>
       </div>
+
+      {config?.isEnabled && config.lastSentAt && (
+        <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-center justify-between">
+          <div className="text-[10px] font-black uppercase tracking-widest text-primary/60">Estimated Next Oracle Call</div>
+          <div className="text-sm font-black text-primary italic">
+            {(() => {
+              const seconds = (config.lastSentAt as any).seconds;
+              const last = new Date(seconds * 1000);
+              const next = new Date(last.getTime() + config.intervalHours * 3600 * 1000);
+              return next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            })()}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-4 pt-4 border-t border-primary/5">
         <button 
