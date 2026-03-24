@@ -9,6 +9,7 @@ import { Lecture, Subject } from "@/types";
 import { ChevronLeft, Settings2, Loader2 } from "lucide-react";
 import PomodoroTimer from "@/components/study/PomodoroTimer";
 import { comfortaa, nunito } from "@/lib/fonts";
+import { useTimerStore } from "@/store/timerStore";
 
 export default function StudyPage() {
   const { lectureId } = useParams();
@@ -16,10 +17,11 @@ export default function StudyPage() {
   const [subject, setSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [workDuration, setWorkDuration] = useState(25);
-  const [breakDuration, setBreakDuration] = useState(5);
-  const [activeDuration, setActiveDuration] = useState(25);
-  const [activeBreak, setActiveBreak] = useState(5);
+  const { initialWorkDuration, initialBreakDuration, setDurations } = useTimerStore();
+  const [workDuration, setWorkDuration] = useState(initialWorkDuration);
+  const [breakDuration, setBreakDuration] = useState(initialBreakDuration);
+  const [activeDuration, setActiveDuration] = useState(initialWorkDuration);
+  const [activeBreak, setActiveBreak] = useState(initialBreakDuration);
   const [timerKey, setTimerKey] = useState(0);
 
   // Fetch Data
@@ -135,8 +137,11 @@ export default function StudyPage() {
           <div className="col-span-2 pt-4">
             <button 
               onClick={() => {
-                setActiveDuration(workDuration);
-                setActiveBreak(breakDuration); // We could pass this to timer too if break is dynamic
+                const w = Math.max(1, workDuration);
+                const b = Math.max(1, breakDuration);
+                setDurations(w, b);
+                setActiveDuration(w);
+                setActiveBreak(b);
                 setTimerKey(prev => prev + 1); // Refresh timer with new settings
               }}
               className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"

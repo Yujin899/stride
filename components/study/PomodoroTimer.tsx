@@ -33,6 +33,7 @@ export default function PomodoroTimer({
   // Connect to Global Timer Store
   const { 
     mode, isRunning, timeLeft, totalSecondsStudied, targetEndTime,
+    initialWorkDuration: storeWorkDur, initialBreakDuration: storeBreakDur,
     setMode, setDurations, start, pause, resume, reset, tick, addStudiedSecond, completeSession
   } = useTimerStore();
 
@@ -44,6 +45,7 @@ export default function PomodoroTimer({
   const audioAlarmRef = useRef<HTMLAudioElement | null>(null);
   const audioTickRef = useRef<HTMLAudioElement | null>(null);
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const wasRunningRef = useRef(false);
 
   // Tick Sound Sync
   useEffect(() => {
@@ -70,12 +72,9 @@ export default function PomodoroTimer({
     audioAlarmRef.current = new Audio("/sounds/alaram.mp3");
     if (audioAlarmRef.current) {
       audioAlarmRef.current.loop = true;
-      const handleTimeUpdate = () => {
-        if (audioAlarmRef.current && audioAlarmRef.current.currentTime >= 3) {
-          audioAlarmRef.current.currentTime = 0;
-        }
-      };
-      audioAlarmRef.current.addEventListener("timeupdate", handleTimeUpdate);
+      audioAlarmRef.current.preload = "auto";
+      audioAlarmRef.current.volume = 1.0;
+      console.log("Pomodoro: Alarm Audio Initialized");
     }
 
     audioTickRef.current = new Audio("/sounds/eight-ticks.mp3");
@@ -168,8 +167,11 @@ export default function PomodoroTimer({
     setIsManualEnd(false);
 
     if (audioAlarmRef.current) {
+      console.log("Pomodoro: Playing Alarm...");
       audioAlarmRef.current.currentTime = 0;
-      audioAlarmRef.current.play().catch(() => { });
+      audioAlarmRef.current.play()
+        .then(() => console.log("Pomodoro: Alarm Playing Success"))
+        .catch((err) => console.error("Pomodoro: Alarm Play Blocked:", err));
     }
 
     if (currentMode === "work") {
@@ -185,14 +187,31 @@ export default function PomodoroTimer({
 
   // Monitor timer end
   useEffect(() => {
-    if (timeLeft === 0 && isRunning) {
+    // If we just hit 0 and we WERE running, trigger handleComplete
+    if (timeLeft === 0 && wasRunningRef.current && !sessionCompleted && !isManualEnd) {
+      console.log("Pomodoro: Session Ended! Triggering completion...");
       Promise.resolve().then(() => {
         handleComplete();
       });
     }
-  }, [timeLeft, isRunning, handleComplete]);
+    wasRunningRef.current = isRunning;
+  }, [timeLeft, isRunning, sessionCompleted, isManualEnd, handleComplete]);
 
   const toggleTimer = () => {
+    // Prime audio context on first user interaction
+    if (audioAlarmRef.current && audioAlarmRef.current.paused) {
+      console.log("Pomodoro: Priming Alarm Audio...");
+      audioAlarmRef.current.play().then(() => {
+        console.log("Pomodoro: Alarm Priming Success");
+        if (!isRinging) {
+          audioAlarmRef.current?.pause();
+          audioAlarmRef.current!.currentTime = 0;
+        }
+      }).catch((err) => {
+        console.warn("Pomodoro: Alarm Priming Failed (Expected if browser still blocks):", err);
+      });
+    }
+
     if (isRinging) {
       if (audioAlarmRef.current) {
         audioAlarmRef.current.pause();
@@ -208,7 +227,7 @@ export default function PomodoroTimer({
       if (targetEndTime) {
         resume();
       } else {
-        start(mode === "work" ? initialDuration : breakDuration);
+        start(mode === "work" ? storeWorkDur : storeBreakDur);
       }
     }
   };
@@ -239,14 +258,14 @@ export default function PomodoroTimer({
 
   const adjustDuration = (amount: number) => {
     if (isRunning || isRinging || mode !== "work") return;
-    const newDur = Math.max(1, Math.min(120, initialDuration + amount));
-    setDurations(newDur, breakDuration);
+    const newDur = Math.max(1, Math.min(120, storeWorkDur + amount));
+    setDurations(newDur, storeBreakDur);
   };
 
   // Render Helpers
-  const activeDuration = mode === "work" ? initialDuration : breakDuration;
-  const totalElapsed = activeDuration * 60 - timeLeft;
-  const currentTotal = activeDuration * 60;
+  const currentInitialDuration = mode === "work" ? storeWorkDur : storeBreakDur;
+  const totalElapsed = currentInitialDuration * 60 - timeLeft;
+  const currentTotal = currentInitialDuration * 60;
   
   const minuteRotation = (totalElapsed / currentTotal) * 360;
   const secondRotation = totalElapsed * 6;
@@ -254,9 +273,9 @@ export default function PomodoroTimer({
   
   const qValues = {
     top: 0,
-    right: Math.round(activeDuration / 4),
-    bottom: Math.round(activeDuration / 2),
-    left: Math.round(activeDuration * 3 / 4)
+    right: Math.round(currentInitialDuration / 4),
+    bottom: Math.round(currentInitialDuration / 2),
+    left: Math.round(currentInitialDuration * 3 / 4)
   };
 
   return (
@@ -264,8 +283,6 @@ export default function PomodoroTimer({
       <div className="relative">
         <TimerDisplay 
           mode={mode} 
-          duration={activeDuration} 
-          timeLeft={timeLeft} 
           isRinging={isRinging} 
           minuteRotation={minuteRotation} 
           secondRotation={secondRotation} 
@@ -317,7 +334,7 @@ export default function PomodoroTimer({
               {/* Button 3: Go to Home */}
               <button
                 onClick={() => router.push("/")}
-                className="bg-white text-(--text) border-2 border-[rgba(212,184,122,0.3)] px-5 py-4 rounded-xl font-black shadow-sm hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
+                className="bg-white text-foreground border-2 border-[rgba(212,184,122,0.3)] px-5 py-4 rounded-xl font-black shadow-sm hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
               >
                 Go to Home <Home size={18} className="group-hover:scale-110 transition-transform" />
               </button>
@@ -332,7 +349,7 @@ export default function PomodoroTimer({
             <button 
               onClick={() => adjustDuration(-5)} 
               disabled={isRunning || isRinging || mode !== "work"} 
-              className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-(--text) border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
+              className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-foreground border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
             >
               <Minus size={22} />
             </button>
@@ -343,7 +360,7 @@ export default function PomodoroTimer({
               </span>
               <div className="flex items-baseline gap-1">
                 <span className={`${comfortaa.className} text-2xl font-black text-primary`}>
-                  {activeDuration}
+                  {currentInitialDuration}
                 </span>
                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">min</span>
               </div>
@@ -352,16 +369,16 @@ export default function PomodoroTimer({
             <button 
               onClick={() => adjustDuration(5)} 
               disabled={isRunning || isRinging || mode !== "work"} 
-              className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-(--text) border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
+              className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-foreground border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
             >
               <Plus size={22} />
             </button>
           </div>
 
           <div className="flex items-center gap-6">
-            <button onClick={resetTimer} className="w-14 h-14 bg-[#EDE8DC] rounded-2xl flex items-center justify-center text-(--text) border-2 border-[rgba(212,184,122,0.3)] transition-all shadow-sm"><RotateCcw size={22} /></button>
-            <button onClick={toggleTimer} className="w-20 h-20 bg-[var(--primary)] text-white rounded-[2rem] flex items-center justify-center shadow-[0_8px_0_#5C420D] hover:translate-y-0.5 transition-all">{isRunning ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" className="ml-1" />}</button>
-            <button onClick={endSessionEarly} className="w-14 h-14 bg-[#EDE8DC] rounded-2xl flex items-center justify-center text-[var(--tomato)] border-2 border-[rgba(212,184,122,0.3)] transition-all shadow-sm"><Square size={22} fill="currentColor" strokeWidth={0} /></button>
+            <button onClick={resetTimer} className="w-14 h-14 bg-[#EDE8DC] rounded-2xl flex items-center justify-center text-foreground border-2 border-[rgba(212,184,122,0.3)] transition-all shadow-sm"><RotateCcw size={22} /></button>
+            <button onClick={toggleTimer} className="w-20 h-20 bg-primary text-white rounded-4xl flex items-center justify-center shadow-[0_8px_0_#5C420D] hover:translate-y-0.5 transition-all">{isRunning ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" className="ml-1" />}</button>
+            <button onClick={endSessionEarly} className="w-14 h-14 bg-[#EDE8DC] rounded-2xl flex items-center justify-center text-tomato border-2 border-[rgba(212,184,122,0.3)] transition-all shadow-sm"><Square size={22} fill="currentColor" strokeWidth={0} /></button>
           </div>
         </div>
       )}

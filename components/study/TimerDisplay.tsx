@@ -7,8 +7,6 @@ const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
 
 interface TimerDisplayProps {
   mode: "work" | "break" | "completed";
-  timeLeft: number;
-  duration: number;
   isRinging: boolean;
   minuteRotation: number;
   secondRotation: number;

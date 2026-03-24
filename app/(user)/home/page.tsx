@@ -11,12 +11,12 @@ import { WeekPlan, Subject, DayPlan } from "@/types";
 import { Timestamp } from "firebase/firestore";
 import TodayQuest from "@/components/home/TodayQuest";
 import AssignModal from "@/components/home/AssignModal";
+import FocusBlooms from "@/components/home/FocusBlooms";
 import { getUserSessions } from "@/lib/weekplan-service";
 import { StudySession } from "@/types";
-import { format } from "date-fns";
 import { ChevronRight, Loader2, AlertCircle, History as HistoryIcon, LayoutDashboard, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { format } from "date-fns";
 
 export default function HomePage() {
   const { user } = useAuthStore();
@@ -191,24 +191,8 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Tomato Counter Div */}
-        <div className="wooden-panel p-4! bg-white/60 backdrop-blur-sm rounded-2xl border-2 border-primary/10 shadow-sm flex flex-col items-center sm:items-end gap-3 min-w-[200px]">
-          <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Today&apos;s Focus Blooms</span>
-          <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
-            {todaySessions.length > 0 ? (
-              todaySessions.map((_, i) => (
-                <div key={i} className="animate-in zoom-in duration-500 delay-100 bounce-subtle">
-                  <Image src="/tomato.png" alt="Tomato" width={32} height={32} className="object-contain drop-shadow-md" />
-                </div>
-              ))
-            ) : (
-              <span className="text-xs font-bold text-muted-foreground/40 italic">Start your first session to bloom...</span>
-            )}
-          </div>
-          {todaySessions.length > 0 && (
-            <span className="text-[10px] font-bold text-secondary">{todaySessions.length} Focus Session{todaySessions.length > 1 ? 's' : ''} Completed</span>
-          )}
-        </div>
+        {/* Today's Focus Blooms (Session Tracker) */}
+        <FocusBlooms sessions={todaySessions} />
       </div>
 
       {/* Weekly Progress Meter */}

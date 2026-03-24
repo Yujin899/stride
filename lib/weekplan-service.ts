@@ -90,7 +90,7 @@ export const getOrCreateWeekPlan = async (userId: string, date: Date): Promise<W
 
       for (let i = 0; i < todayIndex; i++) {
         const dayName = dayNames[i] as keyof typeof plan.days;
-        const quests = plan.days[dayName] || [];
+        const quests = Array.isArray(plan.days[dayName]) ? plan.days[dayName] : [];
         
         const unfinished = quests.filter(q => q.status !== 'done');
         if (unfinished.length > 0) {
@@ -101,7 +101,8 @@ export const getOrCreateWeekPlan = async (userId: string, date: Date): Promise<W
       }
 
       if (hasChanges && movedQuests.length > 0) {
-        plan.days[todayName] = [...(plan.days[todayName] || []), ...movedQuests];
+        const todayQuests = Array.isArray(plan.days[todayName]) ? plan.days[todayName] : [];
+        plan.days[todayName] = [...todayQuests, ...movedQuests];
         await updateDoc(docRef, { days: plan.days });
       }
     }

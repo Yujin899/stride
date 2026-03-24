@@ -4,44 +4,11 @@ import { useState, useEffect } from "react";
 import { getUserSessions } from "@/lib/weekplan-service";
 import { useAuthStore } from "@/store/authStore";
 import { StudySession } from "@/types";
-import { toDate } from "@/lib/firebase/collections";
-import { format } from "date-fns";
 import { comfortaa } from "@/lib/fonts";
 import AncientChronicleBook from "@/components/history/AncientChronicleBook";
 import { Trophy, Clock, ScrollText } from "lucide-react";
 
-/**
- * Consolidates sessions by date and lecture.
- */
-function consolidateSessions(sessions: StudySession[]): StudySession[] {
-  const groups: Record<string, StudySession> = {};
-
-  sessions.forEach(s => {
-    const date = toDate(s.completedAt);
-    if (!date) return;
-    
-    const dayKey = format(date, "yyyy-MM-dd");
-    const lectureKey = s.lectureTitle || "unknown-lecture";
-    const key = `${dayKey}-${lectureKey}`;
-
-    if (!groups[key]) {
-      groups[key] = { ...s };
-    } else {
-      groups[key].durationMinutes += s.durationMinutes;
-      // Keep most recent timestamp
-      const existingDate = toDate(groups[key].completedAt);
-      if (existingDate && date > existingDate) {
-        groups[key].completedAt = s.completedAt;
-      }
-    }
-  });
-
-  return Object.values(groups).sort((a, b) => {
-    const dA = toDate(a.completedAt)?.getTime() || 0;
-    const dB = toDate(b.completedAt)?.getTime() || 0;
-    return dB - dA;
-  });
-}
+// Removed consolidateSessions - user wants individual entries per session.
 
 export default function HistoryPage() {
   const { user } = useAuthStore();
@@ -54,8 +21,7 @@ export default function HistoryPage() {
     const fetchData = async () => {
       try {
         const sessionsData = await getUserSessions(user.id);
-        const consolidated = consolidateSessions(sessionsData);
-        setSessions(consolidated);
+        setSessions(sessionsData);
       } catch (error) {
         console.error("Error fetching history:", error);
       } finally {
