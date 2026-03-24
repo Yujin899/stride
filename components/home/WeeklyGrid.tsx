@@ -2,7 +2,7 @@
 
 import { WeekPlan, DayPlan, Subject } from "@/types";
 import DayBox from "./DayBox";
-import { format } from "date-fns";
+import { format, isBefore, startOfDay } from "date-fns";
 
 interface WeeklyGridProps {
   dates: Date[];
@@ -26,11 +26,16 @@ export default function WeeklyGrid({ dates, weekPlan, subjects, onAssignDay, get
           const lowerDay = day.toLowerCase();
           const plans = getDayPlans(lowerDay);
 
+          const isPast = isBefore(startOfDay(date), startOfDay(new Date()));
+
           return (
             <div 
               key={day} 
-              className="space-y-3 flex flex-col items-center group cursor-pointer"
-              onClick={() => onAssignDay(date, lowerDay)}
+              className={`space-y-3 flex flex-col items-center group ${isPast ? "cursor-default" : "cursor-pointer"}`}
+              onClick={() => {
+                if (isPast) return;
+                onAssignDay(date, lowerDay);
+              }}
             >
               {/* Day Header */}
               <div className="text-center group-hover:scale-105 transition-transform duration-300">

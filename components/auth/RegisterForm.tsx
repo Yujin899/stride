@@ -3,11 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
 import { Loader2, Delete, Sprout } from "lucide-react";
-
-import { playClick } from "@/lib/audio";
 
 export default function RegisterForm() {
   const [name, setName] = useState("");
@@ -19,7 +16,6 @@ export default function RegisterForm() {
   const router = useRouter();
 
   const handleNumberClick = (num: number) => {
-    playClick();
     if (activeField === "pin") {
       if (pin.length < 4) {
         const nextPin = [...pin, num];
@@ -38,7 +34,6 @@ export default function RegisterForm() {
   };
 
   const handleBackspace = () => {
-    playClick();
     if (activeField === "confirmPin") {
       if (confirmPin.length > 0) {
         setConfirmPin((prev) => prev.slice(0, -1));
@@ -51,7 +46,6 @@ export default function RegisterForm() {
   };
 
   const handleSubmit = async () => {
-    playClick();
     if (name.length < 2) {
       setError("Hero name must be at least 2 characters");
       return;

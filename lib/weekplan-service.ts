@@ -73,7 +73,40 @@ export const getOrCreateWeekPlan = async (userId: string, date: Date): Promise<W
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    return docSnap.data() as WeekPlan;
+    const plan = docSnap.data() as WeekPlan;
+    
+    // Rollover Logic: Move unfinished quests from previous days of the SAME week to today
+    const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    const todayDate = new Date();
+    // Only rollover if we're looking at the CURRENT week
+    const currentWeekId = getWeekId(userId, todayDate);
+    
+    if (weekId === currentWeekId) {
+      const todayIndex = (todayDate.getDay() + 6) % 7; // Monday=0, Sunday=6
+      const todayName = dayNames[todayIndex] as keyof typeof plan.days;
+      
+      let hasChanges = false;
+      const movedQuests: DayPlan[] = [];
+
+      for (let i = 0; i < todayIndex; i++) {
+        const dayName = dayNames[i] as keyof typeof plan.days;
+        const quests = plan.days[dayName] || [];
+        
+        const unfinished = quests.filter(q => q.status !== 'done');
+        if (unfinished.length > 0) {
+          movedQuests.push(...unfinished.map(q => ({ ...q, id: q.id || crypto.randomUUID() })));
+          plan.days[dayName] = quests.filter(q => q.status === 'done');
+          hasChanges = true;
+        }
+      }
+
+      if (hasChanges && movedQuests.length > 0) {
+        plan.days[todayName] = [...(plan.days[todayName] || []), ...movedQuests];
+        await updateDoc(docRef, { days: plan.days });
+      }
+    }
+
+    return plan;
   }
 
   // Create new empty week plan

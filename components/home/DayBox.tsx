@@ -1,5 +1,6 @@
 import { DayPlan } from "@/types";
 import { Check, Plus } from "lucide-react";
+import { isBefore, startOfDay } from "date-fns";
 
 interface DayBoxProps {
   dayName: string;
@@ -9,11 +10,19 @@ interface DayBoxProps {
   onContinue: (plan: DayPlan) => void;
 }
 
-export default function DayBox({ dayName, plans = [], onAssign, onContinue }: DayBoxProps) {
+export default function DayBox({ dayName, date, plans = [], onAssign, onContinue }: DayBoxProps) {
   const activePlans = plans.filter(p => p.status !== "empty");
+  const isPast = isBefore(startOfDay(date), startOfDay(new Date()));
   
   const renderContent = () => {
     if (activePlans.length === 0) {
+      if (isPast) {
+        return (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 opacity-20 min-h-[100px]">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">No Quests</span>
+          </div>
+        );
+      }
       return (
         <button 
           onClick={onAssign}
@@ -72,12 +81,14 @@ export default function DayBox({ dayName, plans = [], onAssign, onContinue }: Da
           </div>
         )}
         
-        <button 
-          onClick={onAssign}
-          className="mt-auto w-full py-1.5 border-2 border-dashed border-border/30 rounded-lg flex items-center justify-center hover:bg-surface-section transition-colors group"
-        >
-          <Plus className="w-3 h-3 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-        </button>
+        {!isPast && (
+          <button 
+            onClick={onAssign}
+            className="mt-auto w-full py-1.5 border-2 border-dashed border-border/30 rounded-lg flex items-center justify-center hover:bg-surface-section transition-colors group"
+          >
+            <Plus className="w-3 h-3 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+          </button>
+        )}
       </div>
     );
   };

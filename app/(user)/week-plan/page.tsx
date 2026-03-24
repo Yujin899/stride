@@ -15,7 +15,7 @@ import { comfortaa, nunito } from "@/lib/fonts";
 import { ChevronLeft, Loader2, Calendar, Sparkles, Play, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { format } from "date-fns";
+import { format, isBefore, startOfDay } from "date-fns";
 
 export default function WeekPlanPage() {
   const { user } = useAuthStore();
@@ -133,6 +133,7 @@ export default function WeekPlanPage() {
 
   const selectedPlans = selectedDayDetail ? getDayPlans(selectedDayDetail) : [];
   const selectedDate = selectedDayDetail ? dates[["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].indexOf(selectedDayDetail)] : null;
+  const isPast = selectedDate ? isBefore(startOfDay(selectedDate), startOfDay(new Date())) : false;
 
   return (
     <div className={`max-w-7xl mx-auto space-y-10 pb-24 ${nunito.className}`}>
@@ -273,7 +274,7 @@ export default function WeekPlanPage() {
                              </button>
                              <button 
                                onClick={() => handleDeleteQuest(selectedDayDetail!, plan.id || "")}
-                               className="p-2 rounded-xl bg-tomato/10 text-tomato hover:bg-tomato hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                               className="p-2 rounded-xl bg-tomato/10 text-tomato hover:bg-tomato hover:text-white transition-all shadow-xs"
                                title="Retract Quest"
                              >
                                <X size={14} />
@@ -286,22 +287,26 @@ export default function WeekPlanPage() {
                     <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4 opacity-40">
                        <Sparkles size={48} className="text-primary/20" />
                        <p className="text-xs font-bold text-muted-foreground">Select a scholarly task to begin your focus session.</p>
-                       <button 
-                         onClick={() => handleOpenAssign(selectedDate, selectedDayDetail)}
-                         className="text-[10px] font-black text-primary uppercase underline tracking-widest"
-                       >
-                         Assign First Quest
-                       </button>
+                       {!isPast && (
+                         <button 
+                           onClick={() => handleOpenAssign(selectedDate, selectedDayDetail)}
+                           className="text-[10px] font-black text-primary uppercase underline tracking-widest"
+                         >
+                           Assign First Quest
+                         </button>
+                       )}
                     </div>
                   )}
                 </div>
 
-                <button 
-                  onClick={() => handleOpenAssign(selectedDate, selectedDayDetail)}
-                  className="w-full py-4 mt-6 rounded-2xl border-2 border-dashed border-primary/20 text-xs font-black text-primary/60 hover:bg-primary hover:text-white hover:border-solid transition-all uppercase tracking-widest bg-white"
-                >
-                  + Add Another Quest
-                </button>
+                {!isPast && (
+                  <button 
+                    onClick={() => handleOpenAssign(selectedDate, selectedDayDetail)}
+                    className="w-full py-4 mt-6 rounded-2xl border-2 border-dashed border-primary/20 text-xs font-black text-primary/60 hover:bg-primary hover:text-white hover:border-solid transition-all uppercase tracking-widest bg-white"
+                  >
+                    + Add Another Quest
+                  </button>
+                )}
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4 opacity-40">

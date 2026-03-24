@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
 import { Loader2, Delete, Leaf } from "lucide-react";
-import { playClick } from "@/lib/audio";
 
 export default function LoginForm() {
   const [name, setName] = useState("");
@@ -16,7 +15,6 @@ export default function LoginForm() {
   const router = useRouter();
 
   const handleNumberClick = (num: number) => {
-    playClick();
     if (pin.length < 4) {
       setPin((prev) => [...prev, num]);
       setError(null);
@@ -24,12 +22,10 @@ export default function LoginForm() {
   };
 
   const handleBackspace = () => {
-    playClick();
     setPin((prev) => prev.slice(0, -1));
   };
 
   const handleSubmit = async () => {
-    playClick();
     if (!name) {
       setError("Hero name required");
       return;
