@@ -8,7 +8,8 @@ import {
   orderBy,
   where,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  Timestamp
 } from "firebase/firestore";
 import { startOfWeek, addDays, getISOWeek, getYear } from "date-fns";
 import { WeekPlan, Subject, DayPlan, Lecture, StudySession } from "@/types";
@@ -141,4 +142,38 @@ export const getSubjects = async (): Promise<Subject[]> => {
 export const getWeekDates = (date: Date) => {
   const start = startOfWeek(date, { weekStartsOn: 1 });
   return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
+};
+
+/**
+ * Marks a quest as complete if it exists in the current week's plan
+ */
+export const completeQuest = async (userId: string, lectureId: string, score: number) => {
+  const now = new Date();
+  const weekId = getWeekId(userId, now);
+  const docRef = doc(weekPlansCol, weekId);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) return;
+
+  const data = docSnap.data() as WeekPlan;
+  const days = data.days as Record<string, DayPlan[]>;
+  let found = false;
+
+  // Search through each day to find the matching lectureId
+  for (const day of Object.keys(days)) {
+    const plans = days[day];
+    const planIndex = plans.findIndex(p => p.lectureId === lectureId && p.status !== "done");
+
+    if (planIndex !== -1) {
+      plans[planIndex].status = "done";
+      plans[planIndex].score = score;
+      plans[planIndex].completedAt = Timestamp.now();
+      found = true;
+      break; 
+    }
+  }
+
+  if (found) {
+    await updateDoc(docRef, { days });
+  }
 };

@@ -5,19 +5,39 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { toDate } from "@/lib/firebase/collections";
 import { StudySession } from "@/types";
+import { useAuthStore } from "@/store/authStore";
 import { Caveat, UnifrakturMaguntia } from "next/font/google";
 import { X } from "lucide-react";
 
 const handwriting = Caveat({ subsets: ["latin"], weight: ["400", "700"] });
 const blackletter = UnifrakturMaguntia({ subsets: ["latin"], weight: ["400"] });
 
-// ─── BUILD MESSAGE ────────────────────────────────────────────────────────────
-function buildMessage(session: StudySession, studentName: string): string {
+// ─── FUNNY MESSAGE ENGINE ───────────────────────────────────────────────────
+const FUNNY_TEMPLATES = [
+  (name: string, mins: number, subject: string, date: string, lecture: string) => 
+    `Hear Ye! The Tomato Council is utterly baffled. The Scholar ${name} actually spent ${mins} minutes focused on ${subject} during "${lecture}". On ${date}, the ink was dry, but the focus was fresh!`,
+  
+  (name: string, mins: number, subject: string, date: string, lecture: string) => 
+    `By the grace of the Great Vine! On ${date}, ${name} entered a deep trance for ${mins} minutes. The subject? ${subject}. The result? A breakthrough in "${lecture}" that even the Elder Seeds couldn't predict.`,
+  
+  (name: string, mins: number, subject: string, date: string, lecture: string) => 
+    `${name}, you absolute legend. ${mins} minutes of pure ${subject} on ${date}. The parchment practically smoked as you recorded your progress in "${lecture}". The Scrivener's hand is tired!`,
+  
+  (name: string, mins: number, subject: string, date: string, lecture: string) => 
+    `Alert the guards! ${name} has been caught studying ${subject} for ${mins} minutes straight. This occurred on ${date} during "${lecture}". The Tomato Kingdom has never seen such scholarly discipline!`,
+  
+  (name: string, mins: number, subject: string, date: string, lecture: string) => 
+    `On the sacred day of ${date}, the air smelled of basil as ${name} focused for ${mins} minutes. ${subject} was the challenge, and "${lecture}" was the scroll. Keep this up and you'll be a Master Ketchup in no time!`,
+];
+
+function buildMessage(session: StudySession, name: string): string {
   const date = toDate(session.completedAt);
-  const dateStr = date ? format(date, "MMMM do, yyyy") : "an unknown day";
-  const subject = session.subjectName || "the Ancient Arts";
-  const lecture = session.lectureTitle?.slice(0, 40) || "the Great Record";
-  return `We, the Tomato People, hereby certify that The Honorable ${studentName} studied for ${session.durationMinutes} minutes in the subject of ${subject} on the day of ${dateStr} during Lecture ${lecture}.`;
+  const dateStr = date ? format(date, "MMMM do, yyyy") : "a foggy past";
+  const subject = session.subjectName || "The Secret Sauce";
+  const lecture = session.lectureTitle?.slice(0, 40) || "The Unnamed Scroll";
+  
+  const hash = (session.id?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || session.durationMinutes) % FUNNY_TEMPLATES.length;
+  return FUNNY_TEMPLATES[hash](name, session.durationMinutes, subject, dateStr, lecture);
 }
 
 // ─── SVG FILTERS ─────────────────────────────────────────────────────────────
@@ -43,7 +63,6 @@ const AgeStains = () => (
       style={{ background: "radial-gradient(ellipse, #7a5010 0%, transparent 80%)", transform: "rotate(-12deg)" }} />
     <div className="absolute bottom-24 right-6 w-16 h-22 opacity-10 rounded-full"
       style={{ background: "radial-gradient(ellipse, #5a3800 0%, transparent 80%)", transform: "rotate(18deg)" }} />
-    {/* Fox spots */}
     {[
       { top: "18%", left: "14%", size: 5 },
       { top: "43%", left: "80%", size: 4 },
@@ -56,7 +75,6 @@ const AgeStains = () => (
       <div key={i} className="absolute rounded-full opacity-25"
         style={{ top: s.top, left: s.left, width: s.size, height: s.size, background: "#4a2e00" }} />
     ))}
-    {/* Torn right edge */}
     <svg className="absolute right-0 inset-y-0 h-full opacity-70" style={{ width: 16 }} viewBox="0 0 16 200" preserveAspectRatio="none">
       <path d="M16,0 Q10,8 14,18 Q16,28 12,38 Q8,48 14,58 Q16,68 11,78 Q6,88 13,98 Q16,108 10,118 Q5,128 12,138 Q16,148 9,158 Q4,168 13,178 Q16,188 14,200 L16,200 Z"
         fill="#0d0603" />
@@ -79,24 +97,14 @@ const IvyFrame = () => (
 );
 
 // ─── MAGIC PARTICLES ──────────────────────────────────────────────────────────
-const Particle = ({ x, y }: { x: number; y: number }) => {
-  const angle = Math.random() * 360;
-  const dist = 25 + Math.random() * 90;
-  const tx = Math.cos((angle * Math.PI) / 180) * dist;
-  const ty = Math.sin((angle * Math.PI) / 180) * dist;
-  const colors = ["#D4AF37", "#FFD700", "#C94A35", "#F5C5B0", "#fffacd", "#e8d5a3"];
-  const color = colors[Math.floor(Math.random() * colors.length)];
-  const size = 2 + Math.random() * 4;
-
-  return (
-    <motion.div className="absolute rounded-full pointer-events-none"
-      style={{ left: x, top: y, width: size, height: size, background: color, zIndex: 50 }}
-      initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-      animate={{ opacity: 0, x: tx, y: ty, scale: 0 }}
-      transition={{ duration: 0.9 + Math.random() * 0.5, ease: "easeOut" }}
-    />
-  );
-};
+const Particle = ({ x, y, config }: { x: number; y: number; config: any }) => (
+  <motion.div className="absolute rounded-full pointer-events-none"
+    style={{ left: x, top: y, width: config.size, height: config.size, background: config.color, zIndex: 50 }}
+    initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+    animate={{ opacity: 0, x: config.tx, y: config.ty, scale: 0 }}
+    transition={{ duration: config.duration, ease: "easeOut" }}
+  />
+);
 
 // ─── RUB HINT ─────────────────────────────────────────────────────────────────
 const RubHint = ({ progress, show }: { progress: number; show: boolean }) => (
@@ -156,13 +164,14 @@ const PageText = ({ text, textKey }: { text: string; textKey: string }) => (
 
 // ─── PARCHMENT ────────────────────────────────────────────────────────────────
 const MagicalParchment = ({
-  session, studentName, onRubComplete, isLast,
+  session, onRubComplete, isLast,
 }: {
   session?: StudySession;
-  studentName: string;
   onRubComplete: (x: number, y: number) => void;
   isLast: boolean;
 }) => {
+  const { user } = useAuthStore();
+  const studentName = user?.name || "Scholar";
   const message = session ? buildMessage(session, studentName) : "The tome awaits its first scholar...";
   const textKey = session?.id ?? "empty";
 
@@ -224,7 +233,6 @@ const MagicalParchment = ({
       onTouchMove={(e) => { e.preventDefault(); const t = e.touches[0]; moveRub(t.clientX, t.clientY); }}
       onTouchEnd={endRub}
     >
-      {/* Depth layers */}
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse at 25% 35%,#d4aa60 0%,#8a6020 55%,#4a2800 100%)", opacity: 0.65 }} />
       <div className="absolute inset-0 pointer-events-none"
@@ -235,11 +243,7 @@ const MagicalParchment = ({
 
       <AgeStains />
       <IvyFrame />
-
-      {/* Spine shadow */}
       <div className="absolute inset-y-0 left-0 w-8 sm:w-14 bg-linear-to-r from-black/55 to-transparent pointer-events-none" style={{ zIndex: 5 }} />
-
-      {/* Horizontal lines */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.06]"
         style={{
           backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 26px,#3d1a00 26px,#3d1a00 27px)",
@@ -247,7 +251,6 @@ const MagicalParchment = ({
           zIndex: 2,
         }} />
 
-      {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-center items-center p-5 sm:p-12" style={{ zIndex: 10 }}>
         <div className="mb-2 sm:mb-5 w-7 h-7 sm:w-11 sm:h-11 rounded-full border-2 border-[#8B1A1A]/50 bg-[#A42E1C]/15 flex items-center justify-center">
           <span className={`${handwriting.className} text-[#8B1A1A]/60 text-xs font-bold`}>S</span>
@@ -255,12 +258,6 @@ const MagicalParchment = ({
         <div className="max-w-[87%] w-full">
           <PageText text={message} textKey={textKey} />
         </div>
-        {session && (
-          <div className="mt-4 sm:mt-7 opacity-[0.08] pointer-events-none">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" className="w-9 h-9 sm:w-14 sm:h-14 grayscale sepia" />
-          </div>
-        )}
       </div>
 
       <AnimatePresence>
@@ -285,79 +282,86 @@ const MagicalParchment = ({
 };
 
 // ─── BOOK COVER ───────────────────────────────────────────────────────────────
-const BookCover = ({ isOpen, onOpen }: { isOpen: boolean; onOpen: () => void }) => (
-  <motion.div
-    initial={false}
-    animate={{ rotateY: isOpen ? -138 : 0 }}
-    transition={{ duration: 1.5, ease: [0.645, 0.045, 0.355, 1] }}
-    style={{ transformOrigin: "left center", transformStyle: "preserve-3d" }}
-    className={`absolute inset-0 z-[200] ${isOpen ? "pointer-events-none" : "cursor-pointer"}`}
-    onClick={() => !isOpen && onOpen()}
-  >
-    {/* Front */}
-    <div className="absolute inset-0 rounded-xl overflow-hidden"
-      style={{
-        background: "linear-gradient(155deg,#2A1810 0%,#1A0D06 45%,#100804 100%)",
-        boxShadow: "8px 0 28px rgba(0,0,0,0.75), inset -3px 0 10px rgba(0,0,0,0.5)",
-        backfaceVisibility: "hidden",
-      }}>
-      {/* Crack lines */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.08]" viewBox="0 0 200 300" preserveAspectRatio="none">
-        <path d="M20,10 Q25,50 18,80 Q12,115 22,155 Q28,185 15,225 Q8,255 20,290" stroke="#D4AF37" strokeWidth="0.6" fill="none" />
-        <path d="M180,20 Q174,65 181,105 Q187,145 177,172 Q170,205 179,245" stroke="#D4AF37" strokeWidth="0.3" fill="none" />
-        <path d="M60,5 Q66,28 59,56" stroke="#D4AF37" strokeWidth="0.4" fill="none" />
-        <path d="M140,240 Q145,260 138,285" stroke="#D4AF37" strokeWidth="0.3" fill="none" />
-      </svg>
-      <div className="absolute inset-3 sm:inset-5 border border-[#D4AF37]/20 rounded-lg pointer-events-none" />
-      <div className="absolute inset-5 sm:inset-8 border border-[#D4AF37]/08 rounded pointer-events-none" />
+const BookCover = ({ isOpen, onOpen }: { isOpen: boolean; onOpen: () => void }) => {
+  const { user } = useAuthStore();
+  return (
+    <motion.div
+      initial={false}
+      animate={{ rotateY: isOpen ? -138 : 0 }}
+      transition={{ duration: 1.5, ease: [0.645, 0.045, 0.355, 1] }}
+      style={{ transformOrigin: "left center", transformStyle: "preserve-3d" }}
+      className={`absolute inset-0 z-[200] ${isOpen ? "pointer-events-none" : "cursor-pointer"}`}
+      onClick={() => !isOpen && onOpen()}
+    >
+      <div className="absolute inset-0 rounded-xl overflow-hidden"
+        style={{
+          background: "linear-gradient(155deg,#2A1810 0%,#1A0D06 45%,#100804 100%)",
+          boxShadow: "8px 0 28px rgba(0,0,0,0.75), inset -3px 0 10px rgba(0,0,0,0.5)",
+          backfaceVisibility: "hidden",
+        }}>
+        <svg className="absolute inset-0 w-full h-full opacity-[0.08]" viewBox="0 0 200 300" preserveAspectRatio="none">
+          <path d="M20,10 Q25,50 18,80 Q12,115 22,155 Q28,185 15,225 Q8,255 20,290" stroke="#D4AF37" strokeWidth="0.6" fill="none" />
+          <path d="M180,20 Q174,65 181,105 Q187,145 177,172 Q170,205 179,245" stroke="#D4AF37" strokeWidth="0.3" fill="none" />
+          <path d="M60,5 Q66,28 59,56" stroke="#D4AF37" strokeWidth="0.4" fill="none" />
+          <path d="M140,240 Q145,260 138,285" stroke="#D4AF37" strokeWidth="0.3" fill="none" />
+        </svg>
+        <div className="absolute inset-3 sm:inset-5 border border-[#D4AF37]/20 rounded-lg pointer-events-none" />
+        <div className="absolute inset-5 sm:inset-8 border border-[#D4AF37]/08 rounded pointer-events-none" />
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 sm:gap-6 p-6 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/tomato.png" alt=""
-          className="w-16 h-16 sm:w-28 sm:h-28 sepia brightness-[0.3] rotate-[-7deg] drop-shadow-2xl" />
-        <div className="space-y-2 sm:space-y-3">
-          <p className={`${blackletter.className} text-[#D4B87A]`}
-            style={{ fontSize: "clamp(1rem, 3.2vw, 1.7rem)", letterSpacing: "0.08em" }}>
-            Chronica Tomatum
-          </p>
-          <p className="text-[#D4AF37]/45 uppercase tracking-[0.4em]"
-            style={{ fontSize: "clamp(0.42rem, 1.1vw, 0.58rem)" }}>
-            Anno Domini MMXXVI
-          </p>
-          <div className="mt-1 px-3 py-1.5 sm:px-5 sm:py-2 border border-[#D4AF37]/30 rounded-full text-[#D4AF37]/65 hover:text-[#D4AF37] hover:border-[#D4AF37]/55 transition-all"
-            style={{ fontSize: "clamp(0.48rem, 1.3vw, 0.62rem)", letterSpacing: "0.32em" }}>
-            OPEN TOME
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 sm:gap-6 p-6 text-center">
+          <img src="/tomato.png" alt=""
+            className="w-16 h-16 sm:w-28 sm:h-28 sepia brightness-[0.3] rotate-[-7deg] drop-shadow-2xl" />
+          <div className="space-y-2 sm:space-y-3">
+            <p className={`${blackletter.className} text-[#D4B87A]`}
+              style={{ fontSize: "clamp(1rem, 3.2vw, 1.7rem)", letterSpacing: "0.08em" }}>
+              Chronica Tomatum
+            </p>
+            <p className="text-[#D4AF37]/45 uppercase tracking-[0.4em]"
+              style={{ fontSize: "clamp(0.42rem, 1.1vw, 0.58rem)" }}>
+              Liber {user?.name || "Scholar"}
+            </p>
+            <div className="mt-1 px-3 py-1.5 sm:px-5 sm:py-2 border border-[#D4AF37]/30 rounded-full text-[#D4AF37]/65 hover:text-[#D4AF37] hover:border-[#D4AF37]/55 transition-all"
+              style={{ fontSize: "clamp(0.48rem, 1.3vw, 0.62rem)", letterSpacing: "0.32em" }}>
+              OPEN TOME
+            </div>
           </div>
         </div>
       </div>
-    </div>
-
-    {/* Back (inside cover) */}
-    <div className="absolute inset-0 rounded-xl overflow-hidden"
-      style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", background: "#b89050" }}>
-      <div className="h-full flex items-center justify-center opacity-15">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="" className="w-20 h-20 grayscale sepia" />
+      <div className="absolute inset-0 rounded-xl overflow-hidden"
+        style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", background: "#b89050" }}>
       </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function AncientChronicleBook({
   sessions,
-  userMap,
 }: {
   sessions: StudySession[];
-  userMap: Record<string, string>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const [particles, setParticles] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [particles, setParticles] = useState<{ id: number; x: number; y: number; config: any }[]>([]);
   const pidRef = useRef(0);
 
   const handleRubComplete = useCallback((x: number, y: number) => {
-    const burst = Array.from({ length: 20 }, () => ({ id: pidRef.current++, x, y }));
+    const COLORS = ["#D4AF37", "#FFD700", "#C94A35", "#F5C5B0", "#fffacd", "#e8d5a3"];
+    const burst = Array.from({ length: 24 }, () => {
+      const angle = Math.random() * 360;
+      const dist = 25 + Math.random() * 90;
+      return {
+        id: pidRef.current++,
+        x, y,
+        config: {
+          tx: Math.cos((angle * Math.PI) / 180) * dist,
+          ty: Math.sin((angle * Math.PI) / 180) * dist,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          size: 2 + Math.random() * 4,
+          duration: 0.9 + Math.random() * 0.5,
+        }
+      };
+    });
     setParticles((p) => [...p, ...burst]);
     setTimeout(() => setParticles((p) => p.filter((pt) => !burst.find((b) => b.id === pt.id))), 1600);
     setCurrentPage((p) => Math.min(p + 1, sessions.length - 1));
@@ -371,15 +375,12 @@ export default function AncientChronicleBook({
   }, [isOpen]);
 
   const currentSession = sessions[currentPage];
-  const studentName = userMap[currentSession?.userId ?? ""] || "Scholar";
   const isLastPage = currentPage >= sessions.length - 1;
 
   return (
     <>
       <AgedFilters />
       <div className="w-full flex flex-col items-center py-8 sm:py-16 px-4">
-
-        {/* ── Book ── */}
         <div className="relative"
           style={{
             width: "min(88vw, 460px)",
@@ -388,7 +389,6 @@ export default function AncientChronicleBook({
             transformStyle: "preserve-3d",
           }}>
 
-          {/* Spine */}
           <div className="absolute inset-y-0 left-0 z-[150] pointer-events-none"
             style={{
               width: "clamp(9px, 2.2vw, 22px)",
@@ -397,26 +397,21 @@ export default function AncientChronicleBook({
               boxShadow: "-3px 0 14px rgba(0,0,0,0.65)",
             }} />
 
-          {/* Page */}
           <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: "2px 6px 6px 2px" }}>
             <MagicalParchment
               session={currentSession}
-              studentName={studentName}
               onRubComplete={handleRubComplete}
               isLast={isLastPage}
             />
-            {/* Particles layer */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 50 }}>
               <AnimatePresence>
-                {particles.map((p) => <Particle key={p.id} x={p.x} y={p.y} />)}
+                {particles.map((p) => <Particle key={p.id} x={p.x} y={p.y} config={p.config} />)}
               </AnimatePresence>
             </div>
           </div>
 
-          {/* Cover */}
           <BookCover isOpen={isOpen} onOpen={() => setIsOpen(true)} />
 
-          {/* Page counter */}
           <AnimatePresence>
             {isOpen && sessions.length > 0 && (
               <motion.p
@@ -429,7 +424,6 @@ export default function AncientChronicleBook({
           </AnimatePresence>
         </div>
 
-        {/* ── Controls ── */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -442,7 +436,7 @@ export default function AncientChronicleBook({
               {!isLastPage ? (
                 <p className={`${handwriting.className} text-[#5C3800]/55 text-center`}
                   style={{ fontSize: "clamp(0.7rem, 2vw, 0.95rem)" }}>
-                  ✧ Rub the parchment to reveal the next record ✧
+                  ✧ Rub the parchment to reveal next record ✧
                 </p>
               ) : (
                 <p className={`${handwriting.className} text-[#5C3800]/45 text-center`}

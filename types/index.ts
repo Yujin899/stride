@@ -127,3 +127,9 @@ export interface StudySession {
   completedAt: Date | Timestamp;
   xpEarned: number;
 }
+export interface BotConfig {
+  id: string;
+  subjectId: string;        // "random" or subjectId
+  chatId?: string;
+  lastSentAt?: Timestamp;
+}

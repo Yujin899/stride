@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface HeaderProps {
   user: { name?: string; id?: string };
@@ -34,9 +35,9 @@ export default function Header({ streak }: HeaderProps) {
   }, []);
 
   return (
-    <header className="lg:hidden relative h-[56px] bg-surface flex items-center justify-between px-4 z-50 border-b border-border/10 shadow-sm">
+    <header className="lg:hidden relative h-[88px] bg-surface flex items-center justify-between px-6 z-50 border-b border-border/10 shadow-sm">
       <Link href="/home" className="flex items-center">
-        <img src="/logo.png" alt="Stride" className="h-10 w-auto object-contain" />
+        <Image src="/logo.png" alt="Stride" width={160} height={56} className="h-14 w-auto object-contain" priority />
       </Link>
 
       <div className="flex items-center gap-4">

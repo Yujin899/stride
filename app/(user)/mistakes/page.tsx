@@ -7,7 +7,6 @@ import { getSubjects, getOrCreateWeekPlan } from "@/lib/weekplan-service";
 import { Subject, DayPlan } from "@/types";
 import { Comfortaa, Nunito } from "next/font/google";
 import { Check, X, Loader2, Filter, Info } from "lucide-react";
-import SemesterBar from "@/components/home/SemesterBar";
 
 const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"] });
@@ -16,7 +15,6 @@ export default function MistakesPage() {
   const { user } = useAuthStore();
   const [mistakes, setMistakes] = useState<MistakeWithContent[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [semesterProgress, setSemesterProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeSubjectId, setActiveSubjectId] = useState<string>("all");
 
@@ -24,22 +22,10 @@ export default function MistakesPage() {
     async function init() {
       if (!user?.id) return;
       try {
-        const [mistakeData, subjectData, weekPlan] = await Promise.all([
+        const [mistakeData, subjectData] = await Promise.all([
           getUserMistakes(user.id),
-          getSubjects(),
-          getOrCreateWeekPlan(user.id, new Date())
+          getSubjects()
         ]);
-
-        setMistakes(mistakeData);
-        setSubjects(subjectData);
-
-        // Calc progress (simplification for this page)
-        if (weekPlan) {
-          const days = Object.values(weekPlan.days).flat();
-          const totalPlanned = days.filter(d => d.status !== 'empty').length;
-          const doneDays = days.filter(d => d.status === 'done').length;
-          setSemesterProgress(totalPlanned > 0 ? (doneDays / totalPlanned) * 100 : 0);
-        }
       } catch (err) {
         console.error("Mistakes load error:", err);
       } finally {
@@ -83,14 +69,10 @@ export default function MistakesPage() {
 
   return (
     <div className={`space-y-10 pb-20 ${nunito.className}`}>
-      {/* Header Section */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         <h1 className={`${comfortaa.className} text-3xl text-foreground font-bold`}>
            Mistakes to Review Oops! 🌿
         </h1>
-        <div className="max-w-2xl">
-          <SemesterBar percentage={semesterProgress} />
-        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-10 items-start">

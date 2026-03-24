@@ -3,24 +3,25 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";
-import { 
-  fetchAllSubjects, 
-  createSubject, 
-  getNextLectureOrder, 
-  uploadLecture 
+import {
+  fetchAllSubjects,
+  createSubject,
+  getNextLectureOrder,
+  uploadLecture
 } from "@/lib/admin-service";
 import { Subject } from "@/types";
 import { Comfortaa, Nunito } from "next/font/google";
-import { 
-  Plus, 
-  Sparkles, 
-  Copy, 
-  Check, 
-  Search, 
-  Database, 
+import {
+  Plus,
+  Sparkles,
+  Copy,
+  Check,
+  Search,
+  Database,
   AlertCircle,
   Loader2
 } from "lucide-react";
+import BotController from "@/components/admin/BotController";
 
 const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"] });
@@ -53,8 +54,8 @@ export default function AdminUploadPage() {
 
   // Helper: Number to Words for Lecture Titles
   const numberToWord = (n: number) => {
-    const words = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", 
-                   "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty"];
+    const words = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+      "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty"];
     return words[n] || n.toString();
   };
 
@@ -122,7 +123,7 @@ Requirements:
     correctIndex: number;
     explanation: string; // clear explanation of the correct choice
   }
-- Target 10 high-quality questions if possible.
+- Target 10-15 high-quality questions if possible.
 
 Content:
 ${notebookLMText}`;
@@ -156,14 +157,14 @@ ${notebookLMText}`;
       const questions = JSON.parse(jsonText);
       const autoTitle = `Lecture ${numberToWord(nextOrder)}`;
       await uploadLecture(selectedSubjectId, nextOrder, true, questions, autoTitle);
-      
+
       // Reset form
       setNotebookLMText("");
       setGeneratedPrompt("");
       setJsonText("");
       setIsValidated(false);
       alert(`${autoTitle} forged successfully! 🌿🍅`);
-      
+
       // Refresh order
       getNextLectureOrder(selectedSubjectId).then(setNextOrder);
     } catch (err) {
@@ -205,7 +206,7 @@ ${notebookLMText}`;
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 pl-2">Existing Subjects</label>
-              <select 
+              <select
                 value={selectedSubjectId}
                 onChange={(e) => setSelectedSubjectId(e.target.value)}
                 className="w-full bg-surface-section rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 ring-primary/20 transition-all appearance-none"
@@ -220,20 +221,20 @@ ${notebookLMText}`;
             <div className="pt-2">
               {isAddingSubject ? (
                 <div className="flex gap-2 animate-in slide-in-from-top-2">
-                  <input 
+                  <input
                     type="text"
                     placeholder="Subject Name (e.g. Endodontics)"
                     value={newSubjectName}
                     onChange={(e) => setNewSubjectName(e.target.value)}
                     className="flex-1 bg-surface-section rounded-xl px-4 py-2 text-sm font-bold outline-none"
                   />
-                  <button 
+                  <button
                     onClick={handleCreateSubject}
                     className="px-4 py-2 bg-secondary text-white rounded-xl text-xs font-bold shadow-sm"
                   >
                     Save
                   </button>
-                  <button 
+                  <button
                     onClick={() => setIsAddingSubject(false)}
                     className="px-4 py-2 text-muted-foreground text-xs font-bold"
                   >
@@ -241,7 +242,7 @@ ${notebookLMText}`;
                   </button>
                 </div>
               ) : (
-                <button 
+                <button
                   onClick={() => setIsAddingSubject(true)}
                   className="flex items-center gap-2 text-xs font-bold text-primary hover:text-primary-active transition-colors px-2"
                 >
@@ -273,9 +274,40 @@ ${notebookLMText}`;
             <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-orange-600/60">1. NotebookLM Instructions</span>
-                <button 
+                <button
                   onClick={() => {
-                    const prompt = "Extract all key dental concepts, procedures, and definitions from this lecture in a clear, structured list. Focus on details that would be relevant for a professional dental board exam.";
+                    const prompt = `You are a dental education assistant helping a dental student prepare for exams.
+
+From this lecture, extract and organize ALL of the following in detail:
+
+1. KEY CONCEPTS & DEFINITIONS
+   - Every term introduced with its full definition
+   - Any classifications or categories mentioned
+
+2. MATERIALS & PROPERTIES
+   - Name of each material/substance
+   - Composition (ingredients/components)
+   - Physical & mechanical properties
+   - Advantages and disadvantages
+
+3. CLINICAL PROCEDURES & STEPS
+   - Step-by-step technique details
+   - Indications and contraindications
+   - Clinical tips or precautions mentioned
+
+4. COMPARISONS
+   - Any material vs. material comparisons
+   - Any technique vs. technique comparisons
+
+5. NUMBERS & SPECIFICS
+   - All percentages, ratios, measurements, or timeframes
+   - Setting times, working times, temperatures, pH values
+
+6. EXAM-RELEVANT FACTS
+   - Anything emphasized or repeated by the lecturer
+   - Key distinctions and common points of confusion
+
+Return the output as structured plain text with clear headers. Be exhaustive — do not summarize or skip details. Include everything, even points mentioned briefly.`;
                     navigator.clipboard.writeText(prompt);
                     setIsNotebookLMCopied(true);
                     setTimeout(() => setIsNotebookLMCopied(false), 2000);
@@ -295,7 +327,7 @@ ${notebookLMText}`;
               <div className="flex items-center justify-between pl-2">
                 <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">2. NotebookLM Output</label>
               </div>
-              <textarea 
+              <textarea
                 placeholder="Paste the raw text from NotebookLM or your lecture summary here..."
                 value={notebookLMText}
                 onChange={(e) => setNotebookLMText(e.target.value)}
@@ -303,7 +335,7 @@ ${notebookLMText}`;
               />
             </div>
 
-            <button 
+            <button
               onClick={handleGeneratePrompt}
               disabled={!notebookLMText}
               className="btn-primary w-full py-4 text-sm tracking-widest uppercase flex items-center justify-center gap-2"
@@ -316,12 +348,12 @@ ${notebookLMText}`;
               <div className="space-y-2 animate-in slide-in-from-top-2">
                 <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 pl-2">Final Prompt for Claude</label>
                 <div className="relative">
-                  <textarea 
+                  <textarea
                     readOnly
                     value={generatedPrompt}
                     className="w-full h-32 bg-surface border border-border/50 rounded-2xl p-4 text-[10px] font-mono whitespace-pre outline-none shadow-sm"
                   />
-                  <button 
+                  <button
                     onClick={handleCopyPrompt}
                     className="absolute top-3 right-3 p-2 bg-white rounded-lg shadow-sm hover:bg-surface-section transition-all flex items-center gap-2 text-[10px] font-bold"
                   >
@@ -351,7 +383,7 @@ ${notebookLMText}`;
 
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 pl-2">Claude JSON Output</label>
-              <textarea 
+              <textarea
                 placeholder="Paste the JSON array outputted by Claude here..."
                 value={jsonText}
                 onChange={(e) => {
@@ -363,7 +395,7 @@ ${notebookLMText}`;
             </div>
 
             <div className="flex flex-col gap-3">
-              <button 
+              <button
                 onClick={validateJSON}
                 disabled={!jsonText}
                 className="w-full py-3 bg-white text-secondary border-2 border-secondary/20 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-secondary/5 transition-all flex items-center justify-center gap-2"
@@ -378,7 +410,7 @@ ${notebookLMText}`;
                 </div>
               )}
 
-              <button 
+              <button
                 onClick={handleFinalSubmit}
                 disabled={!isValidated || !selectedSubjectId || nextOrder === null || isSubmitting}
                 className="btn-primary w-full py-5 text-sm tracking-widest uppercase shadow-[0_6px_0_#5C420D] disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
@@ -405,6 +437,16 @@ ${notebookLMText}`;
             </div>
           </div>
         </section>
+      </div>
+
+      {/* Bot Control Section */}
+      <div className="space-y-6 pt-12">
+        <div className="flex items-center gap-3">
+          <div className="h-[2px] flex-1 bg-linear-to-r from-transparent to-primary/10" />
+          <h2 className={`${comfortaa.className} text-xl text-primary font-bold`}>Oracle Settings</h2>
+          <div className="h-[2px] flex-1 bg-linear-to-l from-transparent to-primary/10" />
+        </div>
+        <BotController />
       </div>
     </div>
   );

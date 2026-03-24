@@ -7,6 +7,7 @@ import { Comfortaa, Nunito } from "next/font/google";
 import { ChevronLeft, CheckCircle2, XCircle, Home, RefreshCcw, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { fetchQuiz, saveMistake } from "@/lib/quiz-service";
+import { addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { useAuthStore } from "@/store/authStore";
 import { playClick } from "@/lib/audio";
 import { Lecture } from "@/types";
@@ -95,6 +96,26 @@ export default function QuizPage() {
     }
   };
 
+  // 4. Handle Completion Analysis
+  const [isPassed, setIsPassed] = useState<boolean | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (isFinished && lecture && user) {
+      const percentage = (score / questions.length) * 100;
+      const passed = percentage >= 60;
+      setIsPassed(passed);
+
+      if (passed) {
+        setIsSaving(true);
+        import("@/lib/weekplan-service").then(({ completeQuest }) => {
+          completeQuest(user.id, lecture.id, Math.round(percentage))
+            .finally(() => setIsSaving(false));
+        });
+      }
+    }
+  }, [isFinished, score, questions.length, lecture, user]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-(--background)">
@@ -115,47 +136,82 @@ export default function QuizPage() {
   }
 
   if (isFinished) {
+    const percentage = Math.round((score / questions.length) * 100);
+    
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-(--background) animate-in fade-in duration-500">
         <div className="wooden-panel max-w-md w-full text-center space-y-8">
           <div className="relative w-32 h-32 mx-auto">
              <Image 
-               src="/tomato.png" 
-               alt="Tomato" 
+               src={isPassed ? "/tomato.png" : "/mistakes.png"} 
+               alt="Status" 
                fill 
-               className="object-contain animate-bounce" 
+               className={`object-contain ${isPassed ? "animate-bounce" : "opacity-50"}`} 
              />
           </div>
           
           <div className="space-y-2">
-            <h1 className={`${comfortaa.className} text-3xl font-bold text-(--foreground)`}>Quest Complete! 🎉</h1>
+            <h1 className={`${comfortaa.className} text-3xl font-bold text-(--foreground)`}>
+              {isPassed ? "Quest Complete! 🎉" : "Quest Unfinished ⚔️"}
+            </h1>
             <p className={`${nunito.className} text-lg font-semibold text-(--muted-foreground)`}>
-              You mastered the topic!
+              {isPassed 
+                ? "You mastered the topic and secured the quest!" 
+                : "You need 60% to secure this quest. Keep refining your knowledge!"}
             </p>
           </div>
 
-          <div className="bg-(--surface-active) rounded-3xl p-6 border-2 border-(--border)/20 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
-            <div className="text-4xl font-black text-(--primary) mb-1">
+          <div className={`rounded-3xl p-6 border-2 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] ${
+            isPassed ? "bg-(--surface-active) border-(--border)/20" : "bg-tomato/5 border-tomato/20"
+          }`}>
+            <div className={`text-4xl font-black mb-1 ${isPassed ? "text-(--primary)" : "text-tomato"}`}>
               {score} / {questions.length}
             </div>
-            <div className="text-xs font-bold text-(--muted-foreground) uppercase tracking-widest">
-              Final Score
+            <div className="text-[10px] font-black text-(--muted-foreground) uppercase tracking-[0.3em]">
+              Score: {percentage}%
             </div>
           </div>
 
           <div className="flex flex-col gap-3">
-            <button 
-              onClick={() => router.push("/mistakes")}
-              className="btn-primary w-full py-4 text-sm tracking-widest uppercase flex items-center justify-center gap-2"
-            >
-              Review Mistakes <XCircle size={18} />
-            </button>
-            <button 
-              onClick={() => router.push("/home")}
-              className="w-full py-4 text-sm font-bold text-(--primary) hover:bg-(--surface-active) rounded-2xl transition-all flex items-center justify-center gap-2"
-            >
-              Back to Home <Home size={18} />
-            </button>
+            {isPassed ? (
+              <>
+                <button 
+                  onClick={() => router.push("/home")}
+                  disabled={isSaving}
+                  className="btn-primary w-full py-4 text-sm tracking-widest uppercase flex items-center justify-center gap-2"
+                >
+                  {isSaving ? <Loader2 className="animate-spin" size={18} /> : <>Continue Home <Home size={18} /></>}
+                </button>
+                <button 
+                  onClick={() => router.push("/mistakes")}
+                  className="w-full py-4 text-sm font-bold text-(--muted-foreground) hover:bg-(--surface-active) rounded-2xl transition-all flex items-center justify-center gap-2"
+                >
+                  Review Mistakes <XCircle size={18} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => {
+                    setIsFinished(false);
+                    setCurrentIndex(0);
+                    setScore(0);
+                    setIsAnswered(false);
+                    setSelectedOption(null);
+                    setIsPassed(null);
+                  }}
+                  className="btn-primary w-full py-4 text-sm tracking-widest uppercase flex items-center justify-center gap-2 bg-tomato hover:bg-tomato/90 border-tomato/20 shadow-tomato/20"
+                >
+                  Try Again <RefreshCcw size={18} />
+                </button>
+                <button 
+                  onClick={() => router.push("/home")}
+                  className="w-full py-4 text-sm font-bold text-(--muted-foreground) border-2 border-border/10 rounded-2xl transition-all flex items-center justify-center gap-2"
+                >
+                  Return to Dashboard <Home size={18} />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

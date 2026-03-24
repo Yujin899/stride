@@ -13,26 +13,39 @@ export default function AmbiancePlayer() {
   useEffect(() => {
     const audio = new Audio("/sounds/background.mp3");
     audio.loop = true;
-    audio.volume = 0; // Start at 0 for fade-in
+    audio.volume = 0;
     audioRef.current = audio;
 
-    const unlock = () => {
-      audio.play().then(() => {
+    const attemptPlay = () => {
+      if (!audioRef.current || isUnlocked) return;
+      
+      audioRef.current.play().then(() => {
         setIsUnlocked(true);
-        if (!isAmbiancePlaying) audio.pause();
-        window.removeEventListener("click", unlock);
-        window.removeEventListener("keydown", unlock);
+        // If it was supposed to be playing, keep it playing
+        if (!isAmbiancePlaying) {
+          audioRef.current?.pause();
+        }
+        cleanup();
       }).catch(() => {
-        // Still blocked, wait for next interaction
+        // Autoplay blocked, wait for next interaction
       });
     };
 
-    window.addEventListener("click", unlock);
-    window.addEventListener("keydown", unlock);
+    const cleanup = () => {
+      window.removeEventListener("click", attemptPlay);
+      window.removeEventListener("keydown", attemptPlay);
+      window.removeEventListener("touchstart", attemptPlay);
+    };
+
+    window.addEventListener("click", attemptPlay);
+    window.addEventListener("keydown", attemptPlay);
+    window.addEventListener("touchstart", attemptPlay);
+
+    // Initial attempt (might work if already interacted)
+    attemptPlay();
 
     return () => {
-      window.removeEventListener("click", unlock);
-      window.removeEventListener("keydown", unlock);
+      cleanup();
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;

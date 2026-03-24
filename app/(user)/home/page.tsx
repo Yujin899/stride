@@ -4,27 +4,28 @@ import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { 
   getOrCreateWeekPlan, 
-  getWeekDates, 
   getSubjects, 
   updateDayPlansArr 
 } from "@/lib/weekplan-service";
 import { WeekPlan, Subject, DayPlan } from "@/types";
-import WeeklyGrid from "@/components/home/WeeklyGrid";
-import SemesterBar from "@/components/home/SemesterBar";
+import { Timestamp } from "firebase/firestore";
 import TodayQuest from "@/components/home/TodayQuest";
 import AssignModal from "@/components/home/AssignModal";
-import { format, addWeeks, subWeeks, isToday } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar, Loader2 } from "lucide-react";
+import { getUserSessions } from "@/lib/weekplan-service";
+import { StudySession } from "@/types";
+import { format } from "date-fns";
+import { ChevronRight, Loader2, AlertCircle, History as HistoryIcon, LayoutDashboard, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function HomePage() {
   const { user } = useAuthStore();
   const router = useRouter();
   
   // State
-  const [currentDate, setCurrentDate] = useState(new Date());
   const [weekPlan, setWeekPlan] = useState<WeekPlan | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [todaySessions, setTodaySessions] = useState<StudySession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [activeAssignDay, setActiveAssignDay] = useState<{date: Date, name: string} | null>(null);
@@ -40,12 +41,25 @@ export default function HomePage() {
       
       setIsLoading(true);
       try {
-        const [plan, subjs] = await Promise.all([
-          getOrCreateWeekPlan(user.id, currentDate),
-          getSubjects()
+        const [plan, subjs, sessions] = await Promise.all([
+          getOrCreateWeekPlan(user.id, new Date()),
+          getSubjects(),
+          getUserSessions(user.id)
         ]);
         setWeekPlan(plan);
         setSubjects(subjs);
+        
+        // Filter sessions for today
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const filtered = sessions.filter(s => {
+          if (!s.completedAt) return false;
+          // Robust check for Firebase Timestamp or JS Date
+          const completedAt = s.completedAt as Timestamp | Date;
+          const d = (completedAt as Timestamp).toDate ? (completedAt as Timestamp).toDate() : completedAt as Date;
+          const sDate = format(d, 'yyyy-MM-dd');
+          return sDate === todayStr && s.type === 'work';
+        });
+        setTodaySessions(filtered);
       } catch (err: unknown) {
         console.error("HomePage initialization error:", err);
       } finally {
@@ -53,11 +67,8 @@ export default function HomePage() {
       }
     };
     init();
-  }, [user?.id, currentDate]);
+  }, [user?.id]);
 
-  // Handle Week Navigation
-  const nextWeek = () => setCurrentDate(prev => addWeeks(prev, 1));
-  const prevWeek = () => setCurrentDate(prev => subWeeks(prev, 1));
 
   // Handle Assignment
   const handleOpenAssign = (date: Date, dayName: string, plan: DayPlan | null = null) => {
@@ -82,7 +93,7 @@ export default function HomePage() {
     }
 
     try {
-      await updateDayPlansArr(user.id, currentDate, dayName, updatedPlans);
+      await updateDayPlansArr(user.id, new Date(), dayName, updatedPlans);
       // Local update
       setWeekPlan({
         ...weekPlan,
@@ -102,7 +113,7 @@ export default function HomePage() {
     const updatedPlans = getDayPlans(day).filter(p => p.id !== planId);
 
     try {
-      await updateDayPlansArr(user.id, currentDate, day, updatedPlans);
+      await updateDayPlansArr(user.id, new Date(), day, updatedPlans);
       setWeekPlan({
         ...weekPlan,
         days: { ...weekPlan.days, [day]: updatedPlans }
@@ -115,31 +126,45 @@ export default function HomePage() {
   // Helper for Data Migration & Access
   const getDayPlans = (dayName: string): DayPlan[] => {
     if (!weekPlan) return [];
-    const dayData = (weekPlan.days as any)[dayName.toLowerCase()];
+    const days = weekPlan.days as Record<string, DayPlan[] | DayPlan>;
+    const dayData = days[dayName.toLowerCase()];
     if (Array.isArray(dayData)) return dayData;
     // Migration: If it's a single object (old format), wrap in array
-    if (dayData && dayData.status !== 'empty') {
-       return [{ ...dayData, id: dayData.id || crypto.randomUUID() }];
+    if (dayData && (dayData as DayPlan).status !== 'empty') {
+       return [{ ...dayData as DayPlan, id: (dayData as DayPlan).id || crypto.randomUUID() }];
     }
     return [];
   };
 
-  // Progress Calculations
-  const calcSemesterProgress = () => {
-    if (!weekPlan) return 0;
-    const allPlans = Object.values(weekPlan.days).flat() as DayPlan[];
-    const totalPlanned = allPlans.length;
-    if (totalPlanned === 0) return 0;
-    const doneCount = allPlans.filter(p => p.status === 'done').length;
-    return (doneCount / totalPlanned) * 100;
-  };
-
   // Get Today's Plans
   const getTodayPlans = () => {
+    if (!weekPlan) return [];
     const todayName = format(new Date(), 'eeee').toLowerCase();
-    const isThisWeek = format(currentDate, 'I-I') === format(new Date(), 'I-I');
-    return isThisWeek ? getDayPlans(todayName) : [];
+    return getDayPlans(todayName);
   };
+
+  // Calculate Weekly Progress
+  const getWeeklyProgress = () => {
+    if (!weekPlan) return { total: 0, done: 0, percent: 0 };
+    let total = 0;
+    let done = 0;
+    
+    Object.values(weekPlan.days).forEach((dayPlans: DayPlan[] | any) => {
+      const plans = Array.isArray(dayPlans) ? dayPlans : (dayPlans.status !== 'empty' ? [dayPlans as DayPlan] : []);
+      plans.forEach(p => {
+        total++;
+        if (p.status === "done") done++;
+      });
+    });
+
+    return {
+      total,
+      done,
+      percent: total > 0 ? Math.round((done / total) * 100) : 0
+    };
+  };
+
+  const weeklyStats = getWeeklyProgress();
 
   if (isLoading && !weekPlan) {
     return (
@@ -151,60 +176,153 @@ export default function HomePage() {
   }
 
   return (
-    <div className="relative space-y-6 sm:space-y-8 animate-in fade-in duration-1000">
-      {/* Ad Image Layered - Universal Visibility (Mobile/Tablet/PC) */}
-      <div className="absolute top-0 left-0 right-0 -m-4 sm:-m-6 lg:-m-8 -mt-[15px] lg:-mt-10 z-40 pointer-events-none opacity-90 overflow-hidden flex justify-center">
-        <img src="/ad-1.png" alt="" className="w-full max-w-[300px] sm:max-w-md lg:max-w-xl h-auto object-contain" />
-      </div>
+    <div className="relative space-y-8 pb-24 animate-in fade-in duration-1000">
+      {/* Visual Identity Layer */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-gradient-to-b from-primary/5 to-transparent -z-10 rounded-full blur-3xl" />
 
-      <div className="relative z-0 space-y-6 sm:space-y-8">
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="flex-1 max-w-2xl">
-          <SemesterBar percentage={calcSemesterProgress()} />
+      {/* Header & Stats (Tomato Counter) */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+        <div className="space-y-2">
+          <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
+            Howdy, Scholar! 🌿
+          </h1>
+          <p className="text-sm font-bold text-muted-foreground/60 uppercase tracking-widest">
+            {format(new Date(), 'EEEE, MMMM do')}
+          </p>
         </div>
 
-        {/* Week Navigation */}
-        <div className="flex items-center gap-3 bg-surface p-2 rounded-2xl shadow-sm scroll-mt-20">
-          <button onClick={prevWeek} className="p-2 hover:bg-surface-active rounded-xl transition-all">
-            <ChevronLeft size={20} />
-          </button>
-          <div className="flex items-center gap-2 px-4 border-x border-border/20">
-            <Calendar size={16} className="text-secondary" />
-            <span className="text-xs font-display font-bold text-foreground">
-              Week {format(currentDate, 'w')} — {format(currentDate, 'MMMM yyyy')}
-            </span>
+        {/* Tomato Counter Div */}
+        <div className="wooden-panel p-4! bg-white/60 backdrop-blur-sm rounded-2xl border-2 border-primary/10 shadow-sm flex flex-col items-center sm:items-end gap-3 min-w-[200px]">
+          <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Today&apos;s Focus Blooms</span>
+          <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
+            {todaySessions.length > 0 ? (
+              todaySessions.map((_, i) => (
+                <div key={i} className="animate-in zoom-in duration-500 delay-100 bounce-subtle">
+                  <Image src="/tomato.png" alt="Tomato" width={32} height={32} className="object-contain drop-shadow-md" />
+                </div>
+              ))
+            ) : (
+              <span className="text-xs font-bold text-muted-foreground/40 italic">Start your first session to bloom...</span>
+            )}
           </div>
-          <button onClick={nextWeek} className="p-2 hover:bg-surface-active rounded-xl transition-all">
-            <ChevronRight size={20} />
+          {todaySessions.length > 0 && (
+            <span className="text-[10px] font-bold text-secondary">{todaySessions.length} Focus Session{todaySessions.length > 1 ? 's' : ''} Completed</span>
+          )}
+        </div>
+      </div>
+
+      {/* Weekly Progress Meter */}
+      <div className="px-2 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Weekly Mastery Progress</h3>
+            <span className="text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{weeklyStats.percent}%</span>
+          </div>
+          <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{weeklyStats.done} of {weeklyStats.total} Quests Secured</span>
+        </div>
+        <div className="h-2 w-full bg-surface-active rounded-full overflow-hidden border border-border/5">
+          <div 
+            className="h-full bg-linear-to-r from-primary to-secondary transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(212,184,122,0.3)]"
+            style={{ width: `${weeklyStats.percent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Quick Exploration - MOVED TO TOP */}
+      <div className="space-y-4 px-2">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Quick Exploration</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button 
+            onClick={() => router.push("/study")}
+            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-primary/5!"
+          >
+            <div>
+              <h4 className="font-black text-primary group-hover:underline uppercase tracking-tighter text-sm">Study Hall</h4>
+              <p className="text-[10px] font-bold text-muted-foreground">Continue learning</p>
+            </div>
+            <ChevronRight size={18} className="text-primary/40 group-hover:text-primary transition-colors" />
+          </button>
+
+          <button 
+            onClick={() => router.push("/mistakes")}
+            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-tomato/5!"
+          >
+            <div>
+              <h4 className="font-black text-tomato group-hover:underline uppercase tracking-tighter text-sm">Mistakes (Oops!)</h4>
+              <p className="text-[10px] font-bold text-muted-foreground">Review and master</p>
+            </div>
+            <AlertCircle size={18} className="text-tomato/40 group-hover:text-tomato transition-colors" />
+          </button>
+
+          <button 
+            onClick={() => router.push("/history")}
+            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-[#EDE8DC]!"
+          >
+            <div>
+              <h4 className="font-black text-(--text) group-hover:underline uppercase tracking-tighter text-sm">Scholar&apos;s Archive</h4>
+              <p className="text-[10px] font-bold text-muted-foreground">Your history</p>
+            </div>
+            <HistoryIcon size={18} className="text-(--text)/40 group-hover:text-(--text) transition-colors" />
+          </button>
+
+          <button 
+            onClick={() => router.push("/admin/upload")}
+            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-blue-500/5!"
+          >
+            <div>
+              <h4 className="font-black text-blue-600 group-hover:underline uppercase tracking-tighter text-sm">Admin Portal</h4>
+              <p className="text-[10px] font-bold text-muted-foreground">Manage content</p>
+            </div>
+            <LayoutDashboard size={18} className="text-blue-500/40 group-hover:text-blue-600 transition-colors" />
+          </button>
+
+          <button 
+            onClick={() => router.push("/league")}
+            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-yellow-500/5!"
+          >
+            <div>
+              <h4 className="font-black text-yellow-600 group-hover:underline uppercase tracking-tighter text-sm">Stride League</h4>
+              <p className="text-[10px] font-bold text-muted-foreground">Climb the ranks</p>
+            </div>
+            <Trophy size={18} className="text-yellow-500/40 group-hover:text-yellow-600 transition-colors" />
+          </button>
+
+          <button 
+            onClick={() => router.push("/week-plan")}
+            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-emerald-500/5!"
+          >
+            <div>
+              <h4 className="font-black text-emerald-600 group-hover:underline uppercase tracking-tighter text-sm">Week Scroll</h4>
+              <p className="text-[10px] font-bold text-muted-foreground">The full journey</p>
+            </div>
+            <HistoryIcon size={18} className="text-emerald-500/40 group-hover:text-emerald-600 transition-colors" />
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
-        {/* Main Grid Area */}
-        <div className="flex-1 space-y-6 overflow-hidden">
-          <WeeklyGrid 
-            dates={getWeekDates(currentDate)}
-            weekPlan={weekPlan}
-            subjects={subjects}
-            onAssignDay={handleOpenAssign}
-            getDayPlans={getDayPlans}
-            onContinue={(plan) => router.push(`/study/${plan.lectureId}`)}
-          />
+      {/* Main Content Area: Today's Quests */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between px-2">
+          <h2 className="text-xl font-black text-foreground flex items-center gap-2">
+            Today&apos;s Scroll <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-tighter">Current Quests</span>
+          </h2>
+          <button 
+            onClick={() => handleOpenAssign(new Date(), format(new Date(), 'eeee'))}
+            className="text-xs font-black text-primary hover:underline hover:scale-105 transition-transform"
+          >
+            + Add Task
+          </button>
         </div>
 
-        {/* Quest Sidebar */}
-        <div className="w-full lg:w-[320px] shrink-0">
-          <TodayQuest 
-            plans={getTodayPlans()}
-            onStart={(plan) => router.push(`/study/${plan.lectureId}`)}
-            onEdit={(plan) => handleOpenAssign(new Date(), format(new Date(), 'eeee').toLowerCase(), plan)}
-            onDelete={(plan) => handleDeleteQuest(format(new Date(), 'eeee'), plan.id)}
-            onAssign={() => handleOpenAssign(new Date(), format(new Date(), 'eeee').toLowerCase())}
-          />
-        </div>
+        <TodayQuest 
+          plans={getTodayPlans()}
+          onStart={(plan) => router.push(`/study/${plan.lectureId}`)}
+          onEdit={(plan) => handleOpenAssign(new Date(), format(new Date(), 'eeee').toLowerCase(), plan)}
+          onDelete={(plan) => handleDeleteQuest(format(new Date(), 'eeee'), plan.id)}
+          onAssign={() => handleOpenAssign(new Date(), format(new Date(), 'eeee').toLowerCase())}
+        />
       </div>
+
 
       {/* Assignment Modal */}
       <AssignModal 
@@ -214,7 +332,6 @@ export default function HomePage() {
         onAssign={handleAssignSubmit}
         editingPlan={editingPlan}
       />
-      </div>
     </div>
   );
 }

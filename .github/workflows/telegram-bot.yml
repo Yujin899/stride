@@ -1,0 +1,14 @@
+name: Stride Telegram Bot Cron
+
+on:
+  schedule:
+    - cron: '0 */2 * * *' # Every 2 hours
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  trigger-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Bot API
+        run: |
+          curl -X GET "${{ secrets.BOT_URL }}/api/bot/cron?key=${{ secrets.CRON_SECRET }}"

@@ -3,82 +3,49 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Home, 
-  BookOpen, 
-  AlertCircle, 
-  ShieldCheck,
-  History
 } from "lucide-react";
 import { useState } from "react";
 import { useImmersiveStore } from "@/lib/store";
 
-interface BottomNavProps {
-  role: string | null;
-}
-
-export default function BottomNav({ role }: BottomNavProps) {
+export default function BottomNav() {
   const pathname = usePathname();
   const [showSettings, setShowSettings] = useState(false);
   const { isAmbiancePlaying, setAmbiancePlaying, ambianceVolume, setAmbianceVolume } = useImmersiveStore();
 
   const navLinks = [
-    { name: "Home", href: "/home", image: "/home.png", icon: <Home size={20} /> },
-    { name: "Study", href: "/study", image: "/study.png", icon: <BookOpen size={20} /> },
-    { name: "Mistakes", href: "/mistakes", image: "/mistakes.png", icon: <AlertCircle size={20} /> },
-    { name: "History", href: "/history", image: "/history.png", icon: <History size={20} /> },
-    ...(role === "admin" ? [{ name: "Admin", href: "/admin/upload", image: null, icon: <ShieldCheck size={20} /> }] : []),
+    { name: "Home", href: "/home", icon: "/home.png" },
+    { name: "Study", href: "/study", icon: "/study.png" },
+    { name: "Mistakes", href: "/mistakes", icon: "/mistakes.png" },
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[72px] bg-surface flex items-center justify-around px-2 z-50 pb-safe shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[72px] bg-white border-t border-primary/5 flex items-center justify-around px-2 z-50 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.03)] transition-all duration-300">
       {navLinks.map((link) => {
         const isActive = pathname === link.href;
         return (
           <Link
             key={link.href}
             href={link.href}
-            className={`flex flex-col items-center gap-1 min-w-[56px] transition-all duration-200 ${
+            className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-300 ${
               isActive 
-                ? "bg-surface-active rounded-xl py-2 px-2 text-primary scale-110 shadow-sm" 
-                : "text-muted-foreground"
+                ? "bg-primary/10 scale-110" 
+                : "opacity-40 grayscale"
             }`}
           >
-            <div className="w-6 h-6 flex items-center justify-center">
-              {link.image ? (
-                <img 
-                  src={link.image} 
-                  alt="" 
-                  className={`w-5 h-5 object-contain transition-all ${isActive ? "" : "opacity-60 saturate-0"}`} 
-                />
-              ) : (
-                <div className="flex items-center justify-center">
-                  {link.icon}
-                </div>
-              )}
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-tighter">
-              {link.name}
-            </span>
+            <img src={link.icon} alt={link.name} className="w-7 h-7 object-contain" />
           </Link>
         );
       })}
 
       <button
         onClick={() => setShowSettings(!showSettings)}
-        className={`flex flex-col items-center gap-1 min-w-[56px] transition-all duration-200 ${
-          showSettings ? "text-primary scale-110" : "text-muted-foreground"
+        className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-300 ${
+          showSettings 
+            ? "bg-secondary/10 scale-110" 
+            : "opacity-40 grayscale hover:opacity-100 hover:grayscale-0"
         }`}
       >
-        <div className="w-6 h-6 flex items-center justify-center">
-          <img 
-            src="/settings.png" 
-            alt="" 
-            className={`w-5 h-5 object-contain transition-all ${showSettings ? "" : "opacity-60 saturate-0"}`} 
-          />
-        </div>
-        <span className="text-[9px] font-black uppercase tracking-tighter">
-          Setup
-        </span>
+        <img src="/settings.png" alt="Setup" className="w-7 h-7 object-contain" />
       </button>
 
       {/* Mobile Settings Overlay */}

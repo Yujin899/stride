@@ -14,7 +14,8 @@ import {
   WeekPlan, 
   QuizAttempt, 
   Mistake,
-  StudySession
+  StudySession,
+  BotConfig
 } from "../../types";
 
 /**
@@ -60,3 +61,4 @@ export const weekPlansCol = collection(db, "weekPlan").withConverter(genericConv
 export const quizAttemptsCol = collection(db, "quizAttempts").withConverter(genericConverter<QuizAttempt>());
 export const mistakesCol = collection(db, "mistakes").withConverter(genericConverter<Mistake>());
 export const sessionsCol = collection(db, "sessions").withConverter(genericConverter<StudySession>());
+export const botConfigCol = collection(db, "botConfig").withConverter(genericConverter<BotConfig>());
