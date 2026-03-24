@@ -78,6 +78,42 @@ export default function BotController() {
     }
   };
 
+  // State for live countdown
+  const [nextPollInfo, setNextPollInfo] = useState<{ time: string; countdown: string } | null>(null);
+
+  useEffect(() => {
+    if (!config?.isEnabled || !config?.lastSentAt) {
+      setNextPollInfo(null);
+      return;
+    }
+
+    const updateTime = () => {
+      const seconds = (config.lastSentAt as unknown as { seconds: number }).seconds;
+      if (!seconds) return;
+      
+      const last = new Date(seconds * 1000);
+      const next = new Date(last.getTime() + config.intervalHours * 3600 * 1000);
+      const now = new Date();
+      
+      const diffMs = next.getTime() - now.getTime();
+      
+      if (diffMs <= 0) {
+        setNextPollInfo({ time: "Pending...", countdown: "Now" });
+      } else {
+        const h = Math.floor(diffMs / 3600000);
+        const m = Math.floor((diffMs % 3600000) / 60000);
+        setNextPollInfo({
+          time: next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          countdown: h > 0 ? `${h}h ${m}m` : `${m}m`
+        });
+      }
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 60000);
+    return () => clearInterval(timer);
+  }, [config?.isEnabled, config?.lastSentAt, config?.intervalHours]);
+
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
@@ -87,8 +123,8 @@ export default function BotController() {
           <MessageSquare size={20} />
         </div>
         <div>
-          <h3 className="font-black text-foreground uppercase tracking-tighter">Telegram Oracle Monitor</h3>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Automatic Daily Polls</p>
+          <h3 className="font-black text-foreground uppercase tracking-tighter">Oracle Control Center</h3>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Advanced Bot Management</p>
         </div>
       </div>
 
@@ -160,16 +196,18 @@ export default function BotController() {
         </div>
       </div>
 
-      {config?.isEnabled && config.lastSentAt && (
-        <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-center justify-between">
-          <div className="text-[10px] font-black uppercase tracking-widest text-primary/60">Estimated Next Oracle Call</div>
-          <div className="text-sm font-black text-primary italic">
-            {(() => {
-              const seconds = (config.lastSentAt as any).seconds;
-              const last = new Date(seconds * 1000);
-              const next = new Date(last.getTime() + config.intervalHours * 3600 * 1000);
-              return next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            })()}
+      {nextPollInfo && (
+        <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-center justify-between animate-in fade-in duration-500">
+          <div className="space-y-1">
+            <div className="text-[10px] font-black uppercase tracking-widest text-primary/60">Next Oracle Transmission</div>
+            <div className="text-lg font-black text-primary leading-none flex items-center gap-2">
+              <Sparkles size={14} className="text-secondary animate-pulse" />
+              IN {nextPollInfo.countdown}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">Exact Time</div>
+            <div className="text-xs font-bold text-primary italic">At {nextPollInfo.time}</div>
           </div>
         </div>
       )}
