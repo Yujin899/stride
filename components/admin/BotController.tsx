@@ -92,11 +92,15 @@ export default function BotController() {
     }
 
     const updateTime = () => {
-      const seconds = (config.lastSentAt as unknown as { seconds: number }).seconds;
-      if (!seconds) return;
+      // Robustly handle both Firebase Client and Admin SDK timestamp serializations
+      const raw = config.lastSentAt as unknown as Record<string, number> | null;
+      const seconds = raw?.seconds ?? raw?._seconds;
+      
+      if (typeof seconds !== 'number') return;
       
       const last = new Date(seconds * 1000);
-      const next = new Date(last.getTime() + config.intervalHours * 3600 * 1000);
+      const interval = config.intervalHours || 2;
+      const next = new Date(last.getTime() + interval * 3600 * 1000);
       const now = new Date();
       
       const diffMs = next.getTime() - now.getTime();
@@ -200,32 +204,40 @@ export default function BotController() {
         </div>
       </div>
 
-      {!nextPollInfo && config?.isEnabled && (
-        <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4 flex items-center justify-between animate-in fade-in">
-          <div className="space-y-1">
-            <div className="text-[10px] font-black uppercase tracking-widest text-amber-500/60">Ready for Launch</div>
-            <div className="text-lg font-black text-amber-600 leading-none flex items-center gap-2">
-              WAITING FOR TRANSMISSION
+      {config?.isEnabled && (
+        <div className={`border-2 rounded-2xl p-5 transition-all duration-500 animate-in fade-in flex flex-col md:flex-row gap-4 items-center justify-between ${
+          nextPollInfo ? "bg-primary/5 border-primary/20" : "bg-amber-500/5 border-amber-500/20"
+        }`}>
+          <div className="flex items-center gap-4 w-full">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner ${
+              nextPollInfo ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-600"
+            }`}>
+              {nextPollInfo ? <Sparkles size={24} className="animate-pulse" /> : <Loader2 size={24} className="animate-spin" />}
+            </div>
+            
+            <div className="flex-1 space-y-1 text-center md:text-left">
+              <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${
+                nextPollInfo ? "text-primary/60" : "text-amber-600/60"
+              }`}>
+                {nextPollInfo ? "Next Oracle Transmission" : "Oracle Synchronization"}
+              </div>
+              <div className={`text-xl font-black italic tracking-tight leading-none ${
+                nextPollInfo ? "text-primary" : "text-amber-600"
+              }`}>
+                {nextPollInfo ? `IN ${nextPollInfo.countdown}` : "WAITING FOR HEARTBEAT"}
+              </div>
             </div>
           </div>
-          <div className="text-right max-w-[150px]">
-            <div className="text-[10px] font-bold text-amber-600 italic leading-tight">Click &quot;Trigger Test Poll&quot; below to initialize the schedule.</div>
-          </div>
-        </div>
-      )}
 
-      {nextPollInfo && (
-        <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-center justify-between animate-in fade-in duration-500">
-          <div className="space-y-1">
-            <div className="text-[10px] font-black uppercase tracking-widest text-primary/60">Next Oracle Transmission</div>
-            <div className="text-lg font-black text-primary leading-none flex items-center gap-2">
-              <Sparkles size={14} className="text-secondary animate-pulse" />
-              IN {nextPollInfo.countdown}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">Exact Time</div>
-            <div className="text-xs font-bold text-primary italic">At {nextPollInfo.time}</div>
+          <div className="w-full md:w-auto flex flex-col items-center md:items-end border-t md:border-t-0 md:border-l border-current/10 pt-4 md:pt-0 md:pl-6">
+            <div className="text-[10px] font-black uppercase tracking-wider opacity-40 mb-1">Schedule Details</div>
+            {nextPollInfo ? (
+              <div className="text-xs font-bold whitespace-nowrap">Scheduled at <span className="text-primary italic">{nextPollInfo.time}</span></div>
+            ) : (
+              <div className="text-[10px] font-bold leading-tight max-w-[150px] text-center md:text-right">
+                Trigger a **Test Poll** below to initialize your schedule.
+              </div>
+            )}
           </div>
         </div>
       )}

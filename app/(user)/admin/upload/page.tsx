@@ -156,6 +156,17 @@ ${notebookLMText}`;
       const autoTitle = `Lecture ${numberToWord(nextOrder)}`;
       await uploadLecture(selectedSubjectId, nextOrder, true, questions, autoTitle);
 
+      // Notify Telegram Bot
+      try {
+        fetch("/api/bot/notify-lecture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lectureTitle: autoTitle, subjectId: selectedSubjectId }),
+        });
+      } catch (_err) {
+        console.error("Telegram notification failed silently.");
+      }
+
       // Reset form
       setNotebookLMText("");
       setGeneratedPrompt("");

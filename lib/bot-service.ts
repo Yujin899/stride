@@ -116,3 +116,25 @@ export async function triggerBotCron(force = false) {
     return { success: false, error: "Internal Error" };
   }
 }
+
+export async function notifyNewLecture(lectureTitle: string, subjectId: string) {
+  try {
+    const config = await getBotConfig();
+    if (!config || !config.chatId) return { success: false, error: "Bot not configured" };
+
+    // Fetch subject name
+    const subSnap = await adminDb.collection("subjects").doc(subjectId).get();
+    const subjectName = subSnap.exists ? subSnap.data()?.name : "Unknown Subject";
+
+    const message = `📢 <b>NEW KNOWLEDGE UNLOCKED!</b>\n\n` +
+                   `📜 <b>Lecture:</b> ${lectureTitle}\n` +
+                   `🌿 <b>Subject:</b> ${subjectName}\n\n` +
+                   `<i>Check your Week Plan to start the quest!</i> ⚔️`;
+
+    const res = await sendMessage(config.chatId, message);
+    return { success: res.ok, error: res.description };
+  } catch (err) {
+    console.error("Notify Error:", err);
+    return { success: false, error: "Internal Error" };
+  }
+}
