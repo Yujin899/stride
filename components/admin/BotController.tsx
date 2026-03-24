@@ -235,39 +235,66 @@ export default function BotController() {
       </div>
 
       {config?.isEnabled && (
-        <div className={`border-2 rounded-2xl p-5 transition-all duration-500 animate-in fade-in flex flex-col md:flex-row gap-4 items-center justify-between ${
+        <div className={`border-2 rounded-2xl p-5 transition-all duration-500 animate-in fade-in flex flex-col gap-4 ${
           nextPollInfo ? "bg-primary/5 border-primary/20" : "bg-amber-500/5 border-amber-500/20"
         }`}>
-          <div className="flex items-center gap-4 w-full">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner ${
-              nextPollInfo ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-600"
-            }`}>
-              {nextPollInfo ? <Sparkles size={24} className="animate-pulse" /> : <Loader2 size={24} className="animate-spin" />}
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex items-center gap-4 w-full">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner ${
+                nextPollInfo ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-600"
+              }`}>
+                {nextPollInfo ? <Sparkles size={24} className="animate-pulse" /> : <Loader2 size={24} className="animate-spin" />}
+              </div>
+              
+              <div className="flex-1 space-y-1 text-center md:text-left">
+                <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${
+                  nextPollInfo ? "text-primary/60" : "text-amber-600/60"
+                }`}>
+                  {nextPollInfo ? "Next Oracle Transmission" : "Oracle Synchronization"}
+                </div>
+                <div className={`text-xl font-black italic tracking-tight leading-none ${
+                  nextPollInfo ? "text-primary" : "text-amber-600"
+                }`}>
+                  {nextPollInfo?.time === "Pending..." ? "PENDING..." : `IN ${nextPollInfo?.countdown || "..."}`}
+                </div>
+              </div>
             </div>
-            
-            <div className="flex-1 space-y-1 text-center md:text-left">
-              <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${
-                nextPollInfo ? "text-primary/60" : "text-amber-600/60"
-              }`}>
-                {nextPollInfo ? "Next Oracle Transmission" : "Oracle Synchronization"}
-              </div>
-              <div className={`text-xl font-black italic tracking-tight leading-none ${
-                nextPollInfo ? "text-primary" : "text-amber-600"
-              }`}>
-                {nextPollInfo?.time === "Pending..." ? "PENDING..." : `IN ${nextPollInfo?.countdown || "..."}`}
-              </div>
+
+            <div className="w-full md:w-auto flex flex-col items-center md:items-end border-t md:border-t-0 md:border-l border-current/10 pt-4 md:pt-0 md:pl-6">
+              <div className="text-[10px] font-black uppercase tracking-wider opacity-40 mb-1">Schedule Details</div>
+              {nextPollInfo && nextPollInfo.time !== "Pending..." ? (
+                <div className="text-xs font-bold whitespace-nowrap">Scheduled at <span className="text-primary italic">{nextPollInfo.time}</span></div>
+              ) : (
+                <div className="text-[10px] font-bold leading-tight max-w-[150px] text-center md:text-right">
+                  {nextPollInfo?.time === "Pending..." ? "Waiting for Heartbeat/Cron signal..." : "Trigger a **Test Poll** below to initialize your schedule."}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="w-full md:w-auto flex flex-col items-center md:items-end border-t md:border-t-0 md:border-l border-current/10 pt-4 md:pt-0 md:pl-6">
-            <div className="text-[10px] font-black uppercase tracking-wider opacity-40 mb-1">Schedule Details</div>
-            {nextPollInfo && nextPollInfo.time !== "Pending..." ? (
-              <div className="text-xs font-bold whitespace-nowrap">Scheduled at <span className="text-primary italic">{nextPollInfo.time}</span></div>
-            ) : (
-              <div className="text-[10px] font-bold leading-tight max-w-[150px] text-center md:text-right">
-                {nextPollInfo?.time === "Pending..." ? "Waiting for Heartbeat/Cron signal..." : "Trigger a **Test Poll** below to initialize your schedule."}
-              </div>
-            )}
+          {/* UptimeRobot / Cron Integration Helper */}
+          <div className="mt-2 pt-4 border-t border-primary/10">
+            <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 mb-2 block">Production Heartbeat (UptimeRobot)</label>
+            <div className="flex items-center gap-2 bg-black/5 rounded-lg p-2 overflow-hidden">
+              <code className="text-[10px] font-bold text-primary/80 truncate flex-1 block">
+                {typeof window !== 'undefined' ? `${window.location.origin}/api/bot/cron?key=••••••` : "/api/bot/cron?key=••••••"}
+              </code>
+              <button 
+                onClick={() => {
+                  const key = prompt("Enter your CRON_SECRET to copy the full URL:");
+                  if (key) {
+                    navigator.clipboard.writeText(`${window.location.origin}/api/bot/cron?key=${key}`);
+                    alert("Full Cron URL copied to clipboard! Paste this into UptimeRobot.");
+                  }
+                }}
+                className="text-[10px] font-black bg-primary text-white px-3 py-1 rounded-md hover:bg-primary/80 transition-colors uppercase"
+              >
+                Copy Full URL
+              </button>
+            </div>
+            <p className="text-[9px] font-bold text-muted-foreground mt-2 italic">
+              Use this URL in **UptimeRobot** to trigger the Oracle automatically even when this tab is closed.
+            </p>
           </div>
         </div>
       )}
