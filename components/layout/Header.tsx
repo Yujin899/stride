@@ -12,7 +12,7 @@ interface HeaderProps {
   streak: number;
 }
 
-export default function Header({ streak }: HeaderProps) {
+export default function Header({ user, streak }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { logout } = useAuthStore();
   const router = useRouter();

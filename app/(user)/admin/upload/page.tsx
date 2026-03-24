@@ -10,7 +10,6 @@ import {
   uploadLecture
 } from "@/lib/admin-service";
 import { Subject } from "@/types";
-import { Comfortaa, Nunito } from "next/font/google";
 import {
   Plus,
   Sparkles,
@@ -23,8 +22,7 @@ import {
 } from "lucide-react";
 import BotController from "@/components/admin/BotController";
 
-const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
-const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"] });
+import { comfortaa, nunito } from "@/lib/fonts";
 
 export default function AdminUploadPage() {
   const { user, isLoading: authLoading } = useAuthStore();

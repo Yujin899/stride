@@ -6,12 +6,9 @@ import Link from "next/link";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Lecture, Subject } from "@/types";
-import { Comfortaa, Nunito } from "next/font/google";
 import { ChevronLeft, Settings2, Loader2 } from "lucide-react";
 import PomodoroTimer from "@/components/study/PomodoroTimer";
-
-const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
-const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "800"] });
+import { comfortaa, nunito } from "@/lib/fonts";
 
 export default function StudyPage() {
   const { lectureId } = useParams();

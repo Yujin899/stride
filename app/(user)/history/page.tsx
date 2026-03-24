@@ -6,11 +6,9 @@ import { useAuthStore } from "@/store/authStore";
 import { StudySession } from "@/types";
 import { toDate } from "@/lib/firebase/collections";
 import { format } from "date-fns";
-import { Comfortaa } from "next/font/google";
+import { comfortaa } from "@/lib/fonts";
 import AncientChronicleBook from "@/components/history/AncientChronicleBook";
 import { Trophy, Clock, ScrollText } from "lucide-react";
-
-const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
 
 /**
  * Consolidates sessions by date and lecture.

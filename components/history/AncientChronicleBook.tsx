@@ -6,13 +6,8 @@ import { format } from "date-fns";
 import { toDate } from "@/lib/firebase/collections";
 import { StudySession } from "@/types";
 import { useAuthStore } from "@/store/authStore";
-import { Caveat, UnifrakturMaguntia } from "next/font/google";
+import { handwriting, blackletter } from "@/lib/fonts";
 import { X } from "lucide-react";
-
-const handwriting = Caveat({ subsets: ["latin"], weight: ["400", "700"] });
-const blackletter = UnifrakturMaguntia({ subsets: ["latin"], weight: ["400"] });
-
-// ─── FUNNY MESSAGE ENGINE ───────────────────────────────────────────────────
 const FUNNY_TEMPLATES = [
   (name: string, mins: number, subject: string, date: string, lecture: string) => 
     `Hear Ye! The Tomato Council is utterly baffled. The Scholar ${name} actually spent ${mins} minutes focused on ${subject} during "${lecture}". On ${date}, the ink was dry, but the focus was fresh!`,

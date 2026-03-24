@@ -7,7 +7,11 @@ import {
 import { useState } from "react";
 import { useImmersiveStore } from "@/lib/store";
 
-export default function BottomNav() {
+interface BottomNavProps {
+  role: "admin" | "user" | null;
+}
+
+export default function BottomNav({ role }: BottomNavProps) {
   const pathname = usePathname();
   const [showSettings, setShowSettings] = useState(false);
   const { isAmbiancePlaying, setAmbiancePlaying, ambianceVolume, setAmbianceVolume } = useImmersiveStore();
@@ -17,6 +21,10 @@ export default function BottomNav() {
     { name: "Study", href: "/study", icon: "/study.png" },
     { name: "Mistakes", href: "/mistakes", icon: "/mistakes.png" },
   ];
+
+  if (role === "admin") {
+    navLinks.push({ name: "Admin", href: "/admin/upload", icon: "/admin.png" });
+  }
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[72px] bg-white border-t border-primary/5 flex items-center justify-around px-2 z-50 pb-safe shadow-[0_-4px_12px_rgba(0,0,0,0.03)] transition-all duration-300">

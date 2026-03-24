@@ -11,14 +11,11 @@ import {
 import { WeekPlan, Subject, DayPlan } from "@/types";
 import WeeklyGrid from "@/components/home/WeeklyGrid";
 import AssignModal from "@/components/home/AssignModal";
-import { Comfortaa, Nunito } from "next/font/google";
-import { ChevronLeft, Loader2, Calendar } from "lucide-react";
+import { comfortaa, nunito } from "@/lib/fonts";
+import { ChevronLeft, Loader2, Calendar, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-
-const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
-const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"] });
 
 export default function WeekPlanPage() {
   const { user } = useAuthStore();
@@ -156,5 +153,3 @@ export default function WeekPlanPage() {
   );
 }
 
-// Sparkles local import if not in lucide
-import { Sparkles } from "lucide-react";

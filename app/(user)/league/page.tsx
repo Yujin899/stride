@@ -2,13 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { getLeaderboard, LeaderboardEntry } from "@/lib/user-service";
-import { Comfortaa, Nunito } from "next/font/google";
+import { comfortaa, nunito } from "@/lib/fonts";
 import { Loader2, Trophy, Medal, Target, Zap, Waves } from "lucide-react";
 import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
-
-const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
-const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700", "800"] });
 
 export default function LeaguePage() {
   const { user } = useAuthStore();

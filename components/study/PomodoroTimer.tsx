@@ -2,15 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Pause, RotateCcw, Plus, Minus, Square, CheckCircle2, Home, Coffee } from "lucide-react";
-import { Comfortaa, Nunito } from "next/font/google";
+import { comfortaa, nunito } from "@/lib/fonts";
 import { useRouter } from "next/navigation";
 import TimerDisplay from "./TimerDisplay";
 import { saveStudySession } from "@/lib/weekplan-service";
 import { useAuthStore } from "@/store/authStore";
 import { useTimerStore } from "@/store/timerStore";
-
-const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
-const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "800"] });
 
 interface PomodoroTimerProps {
   initialDuration?: number; // in minutes

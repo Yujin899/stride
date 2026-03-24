@@ -1,18 +1,5 @@
 import type { Metadata } from "next";
-import { Comfortaa, Nunito } from "next/font/google";
-import "./globals.css";
-
-const comfortaa = Comfortaa({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-display",
-});
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-body",
-});
+import { comfortaa, nunito } from "@/lib/fonts";
 
 import AuthInitializer from "@/components/auth/AuthInitializer";
 import AmbiancePlayer from "@/components/audio/AmbiancePlayer";
