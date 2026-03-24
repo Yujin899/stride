@@ -11,4 +11,9 @@ jobs:
     steps:
       - name: Trigger Bot API
         run: |
-          curl -X GET "${{ secrets.BOT_URL }}/api/bot/cron?key=${{ secrets.CRON_SECRET }}"
+          if [ -z "${{ secrets.BOT_URL }}" ]; then
+            echo "❌ Error: BOT_URL secret is missing in GitHub Repository Secrets!"
+            exit 1
+          fi
+          echo "🚀 Triggering bot at ${{ secrets.BOT_URL }}..."
+          curl -s -X GET "${{ secrets.BOT_URL }}/api/bot/cron?key=${{ secrets.CRON_SECRET }}"
