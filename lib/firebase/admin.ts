@@ -1,14 +1,24 @@
 import * as admin from "firebase-admin";
 
-const firebaseAdminConfig = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-};
+const projectId = process.env.FIREBASE_PROJECT_ID;
+const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
-if (!admin.apps.length) {
+if (!projectId || !clientEmail || !privateKey) {
+  console.error("Firebase Admin Error: Missing environment variables", {
+    projectId: !!projectId,
+    clientEmail: !!clientEmail,
+    privateKey: !!privateKey
+  });
+}
+
+if (!admin.apps.length && projectId && clientEmail && privateKey) {
   admin.initializeApp({
-    credential: admin.credential.cert(firebaseAdminConfig),
+    credential: admin.credential.cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
   });
 }
 

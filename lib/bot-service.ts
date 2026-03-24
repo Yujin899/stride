@@ -1,11 +1,10 @@
-import { getDoc, doc, setDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
-import { botConfigCol, mistakesCol, lecturesCol, subjectsCol } from "./firebase/collections";
+import { adminDb, admin } from "./firebase/admin";
 import { BotConfig, Question } from "@/types";
 import { sendPoll, sendMessage } from "./telegram-service";
 
 export async function getBotConfig(): Promise<BotConfig | null> {
-  const snap = await getDoc(doc(botConfigCol, "current"));
-  if (snap.exists()) return snap.data();
+  const snap = await adminDb.collection("botConfig").doc("current").get();
+  if (snap.exists) return snap.data() as BotConfig;
   return null;
 }
 
@@ -15,9 +14,9 @@ export async function updateBotConfig(data: Partial<BotConfig>) {
     id: "current",
     subjectId: data.subjectId || current?.subjectId || "random",
     chatId: data.chatId || current?.chatId || "",
-    lastSentAt: data.lastSentAt || current?.lastSentAt || Timestamp.now(),
+    lastSentAt: data.lastSentAt || current?.lastSentAt || admin.firestore.Timestamp.now(),
   };
-  await setDoc(doc(botConfigCol, "current"), newData);
+  await adminDb.collection("botConfig").doc("current").set(newData);
 }
 
 export async function triggerBotCron() {
@@ -30,7 +29,7 @@ export async function triggerBotCron() {
   // 1. Determine Subject
   let subjectId = config.subjectId;
   if (subjectId === "random") {
-    const subs = await getDocs(subjectsCol);
+    const subs = await adminDb.collection("subjects").get();
     if (!subs.empty) {
       const randomSub = subs.docs[Math.floor(Math.random() * subs.docs.length)];
       subjectId = randomSub.id;
@@ -40,21 +39,15 @@ export async function triggerBotCron() {
   // 2. Fetch Questions (Mistakes first)
   const questionPool: { q: Question; source: string }[] = [];
 
-  // Try Mistakes
-  const mistakesSnap = await getDocs(query(mistakesCol, where("subjectId", "==", subjectId)));
-  if (!mistakesSnap.empty) {
-    // We need to fetch the actual question from lectures since Mistake only has IDs
-    // For now, let's just use lectures pool to keep it simple or implement a lookup
-    // Actually, let's fetch all lectures for this subject and find the mistakes
-  }
-
   // Fallback: Fetch all lectures for this subject
-  const lecturesSnap = await getDocs(query(lecturesCol, where("subjectId", "==", subjectId)));
+  const lecturesSnap = await adminDb.collection("lectures").where("subjectId", "==", subjectId).get();
   lecturesSnap.forEach(doc => {
     const lecture = doc.data();
-    lecture.questions.forEach(q => {
-      questionPool.push({ q, source: `Lecture ${lecture.order}` });
-    });
+    if (lecture.questions && Array.isArray(lecture.questions)) {
+      lecture.questions.forEach((q: Question) => {
+        questionPool.push({ q, source: lecture.title || `Lecture ${lecture.order}` });
+      });
+    }
   });
 
   if (questionPool.length === 0) {
@@ -80,7 +73,7 @@ export async function triggerBotCron() {
     );
 
     if (pollRes.ok) {
-      await updateBotConfig({ lastSentAt: Timestamp.now() });
+      await updateBotConfig({ lastSentAt: admin.firestore.Timestamp.now() as unknown as any });
       return { success: true, question: q.text };
     } else {
       console.error("Telegram API Error:", pollRes);

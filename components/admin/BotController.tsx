@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getBotConfig, updateBotConfig } from "@/lib/bot-service";
 import { fetchAllSubjects } from "@/lib/admin-service";
 import { BotConfig, Subject } from "@/types";
 import { Loader2, Send, Settings, Save, Sparkles, MessageSquare } from "lucide-react";
@@ -16,13 +15,19 @@ export default function BotController() {
 
   useEffect(() => {
     async function init() {
-      const [conf, subs] = await Promise.all([
-        getBotConfig(),
-        fetchAllSubjects()
-      ]);
-      setConfig(conf || { id: "current", subjectId: "random", chatId: "" });
-      setSubjects(subs);
-      setLoading(false);
+      try {
+        const [confRes, subs] = await Promise.all([
+          fetch("/api/bot/config"),
+          fetchAllSubjects()
+        ]);
+        const conf = await confRes.json();
+        setConfig(conf || { id: "current", subjectId: "random", chatId: "" });
+        setSubjects(subs);
+      } catch (err) {
+        console.error("Bot init error:", err);
+      } finally {
+        setLoading(false);
+      }
     }
     init();
   }, []);
@@ -31,8 +36,16 @@ export default function BotController() {
     if (!config) return;
     setIsSaving(true);
     try {
-      await updateBotConfig(config);
-      setStatus({ type: "success", msg: "Configuration saved to the realm!" });
+      const res = await fetch("/api/bot/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      if (res.ok) {
+        setStatus({ type: "success", msg: "Configuration saved to the realm!" });
+      } else {
+        throw new Error("Save failed");
+      }
     } catch {
       setStatus({ type: "error", msg: "Failed to update the scribes." });
     } finally {

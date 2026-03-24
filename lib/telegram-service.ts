@@ -1,4 +1,9 @@
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+if (!BOT_TOKEN) {
+  console.error("TELEGRAM_BOT_TOKEN is not defined in environment variables");
+}
+
 const BASE_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 export async function sendMessage(chatId: string, text: string) {
