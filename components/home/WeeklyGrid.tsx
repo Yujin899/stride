@@ -27,16 +27,20 @@ export default function WeeklyGrid({ dates, weekPlan, subjects, onAssignDay, get
           const plans = getDayPlans(lowerDay);
 
           return (
-            <div key={day} className="space-y-3 flex flex-col items-center">
+            <div 
+              key={day} 
+              className="space-y-3 flex flex-col items-center group cursor-pointer"
+              onClick={() => onAssignDay(date, lowerDay)}
+            >
               {/* Day Header */}
-              <div className="text-center group">
+              <div className="text-center group-hover:scale-105 transition-transform duration-300">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground group-hover:text-primary transition-colors">
                   {day.slice(0, 3)}
                 </p>
-                <div className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-display font-bold transition-all ${
+                <div className={`w-10 h-10 flex items-center justify-center rounded-2xl text-sm font-display font-bold transition-all shadow-sm ${
                   format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
-                  ? "bg-primary text-white scale-110 shadow-sm"
-                  : "text-foreground group-hover:bg-surface-section"
+                  ? "bg-primary text-white scale-110 shadow-primary/20"
+                  : "bg-surface text-foreground group-hover:bg-primary/5 group-hover:text-primary"
                 }`}>
                   {format(date, 'd')}
                 </div>

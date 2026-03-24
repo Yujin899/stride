@@ -78,6 +78,6 @@ export const config = {
      * - sounds (public sound files)
      * - clock.png, ad-1.png, tomato.png (public images)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|sounds|.*\\.png$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sounds|.*\\.png$).*)",
   ],
 };

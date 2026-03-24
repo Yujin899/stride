@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
+  ShieldCheck
 } from "lucide-react";
 import { useState } from "react";
 import { useImmersiveStore } from "@/lib/store";
@@ -20,14 +21,21 @@ export default function BottomNav({ role }: BottomNavProps) {
     isClickEnabled, setClickEnabled, clickVolume, setClickVolume
   } = useImmersiveStore();
 
-  const navLinks = [
-    { name: "Home", href: "/home", icon: "/home.png" },
-    { name: "Study", href: "/study", icon: "/study.png" },
-    { name: "Mistakes", href: "/mistakes", icon: "/mistakes.png" },
+  interface NavLink {
+    name: string;
+    href: string;
+    image?: string;
+    icon?: React.ReactNode;
+  }
+
+  const navLinks: NavLink[] = [
+    { name: "Home", href: "/home", image: "/home.png" },
+    { name: "Study", href: "/study", image: "/study.png" },
+    { name: "Mistakes", href: "/mistakes", image: "/mistakes.png" },
   ];
 
   if (role === "admin") {
-    navLinks.push({ name: "Admin", href: "/admin/upload", icon: "/admin.png" });
+    navLinks.push({ name: "Admin", href: "/admin/upload", icon: <ShieldCheck size={28} className="text-primary" /> });
   }
 
   return (
@@ -44,7 +52,11 @@ export default function BottomNav({ role }: BottomNavProps) {
                 : "opacity-40 grayscale"
             }`}
           >
-            <img src={link.icon} alt={link.name} className="w-7 h-7 object-contain" />
+            {link.image ? (
+              <img src={link.image} alt={link.name} className="w-7 h-7 object-contain" />
+            ) : (
+              link.icon
+            )}
           </Link>
         );
       })}

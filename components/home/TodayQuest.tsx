@@ -11,7 +11,6 @@ interface TodayQuestProps {
 
 export default function TodayQuest({ plans = [], onStart, onEdit, onDelete, onAssign }: TodayQuestProps) {
   const activePlans = plans.filter(p => p.status !== "empty");
-  const isAllDone = activePlans.length > 0 && activePlans.every(p => p.status === "done");
 
   return (
     <div className="w-full">

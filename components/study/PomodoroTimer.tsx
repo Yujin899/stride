@@ -131,7 +131,6 @@ export default function PomodoroTimer({
     }
   };
 
-  const playClick = () => { new Audio("/sounds/click.mp3").play().catch(() => {}); };
 
   const saveStats = (seconds: number) => {
     try {
@@ -202,7 +201,6 @@ export default function PomodoroTimer({
       setIsRinging(false);
       return;
     }
-    playClick();
     if (isRunning) {
       pause();
     } else {
@@ -219,7 +217,6 @@ export default function PomodoroTimer({
     reset(initialDuration);
     setIsRinging(false);
     setSessionCompleted(false);
-    playClick();
     if (audioAlarmRef.current) {
       audioAlarmRef.current.pause();
       audioAlarmRef.current.currentTime = 0;
@@ -242,7 +239,6 @@ export default function PomodoroTimer({
 
   const adjustDuration = (amount: number) => {
     if (isRunning || isRinging || mode !== "work") return;
-    playClick();
     const newDur = Math.max(1, Math.min(120, initialDuration + amount));
     setDurations(newDur, breakDuration);
   };

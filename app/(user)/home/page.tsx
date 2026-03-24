@@ -178,7 +178,7 @@ export default function HomePage() {
   return (
     <div className="relative space-y-8 pb-24 animate-in fade-in duration-1000">
       {/* Visual Identity Layer */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-gradient-to-b from-primary/5 to-transparent -z-10 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-linear-to-b from-primary/5 to-transparent -z-10 rounded-full blur-3xl" />
 
       {/* Header & Stats (Tomato Counter) */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">

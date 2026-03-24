@@ -12,15 +12,17 @@ export default function GlobalClickSound() {
   useEffect(() => {
     const initAudio = async () => {
       try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
         if (!AudioContextClass) return;
         
         audioContextRef.current = new AudioContextClass();
         
         const response = await fetch("/sounds/click.mp3");
         const arrayBuffer = await response.arrayBuffer();
-        audioBufferRef.current = await audioContextRef.current.decodeAudioData(arrayBuffer);
-      } catch (err) {
+        if (audioContextRef.current) {
+          audioBufferRef.current = await audioContextRef.current.decodeAudioData(arrayBuffer);
+        }
+      } catch {
         // Silently fail if click sound fails to load
       }
     };
@@ -34,8 +36,15 @@ export default function GlobalClickSound() {
     };
   }, []);
 
+  const lastPlayTimeRef = useRef<number>(0);
+  const COOLDOWN_MS = 50;
+
   const playSound = useCallback(async () => {
     if (!isClickEnabled || !audioContextRef.current || !audioBufferRef.current) return;
+
+    const now = Date.now();
+    if (now - lastPlayTimeRef.current < COOLDOWN_MS) return;
+    lastPlayTimeRef.current = now;
 
     try {
       // Resume context if suspended (needed for browser autoplay policies)
@@ -53,7 +62,7 @@ export default function GlobalClickSound() {
       gainNode.connect(audioContextRef.current.destination);
       
       source.start(0);
-    } catch (err) {
+    } catch {
       // Catch playback errors silently
     }
   }, [isClickEnabled, clickVolume]);
