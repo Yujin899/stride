@@ -7,7 +7,10 @@ import {
   orderBy, 
   limit, 
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  updateDoc,
+  deleteDoc,
+  doc
 } from "firebase/firestore";
 import { db } from "./firebase/config";
 import { Subject, Lecture } from "@/types";
@@ -101,6 +104,84 @@ export async function uploadLecture(
     return docRef.id;
   } catch (err) {
     console.error("Error uploading lecture:", err);
+    throw err;
+  }
+}
+
+/**
+ * Update existing subject details
+ */
+export async function updateSubject(id: string, data: Partial<Subject>): Promise<void> {
+  try {
+    const docRef = doc(db, "subjects", id);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    });
+  } catch (err) {
+    console.error("Error updating subject:", err);
+    throw err;
+  }
+}
+
+/**
+ * Delete a subject and all its associated lectures
+ */
+export async function deleteSubject(id: string): Promise<void> {
+  try {
+    // 1. Delete all lectures for this subject
+    const q = query(collection(db, "lectures"), where("subjectId", "==", id));
+    const snap = await getDocs(q);
+    const deletePromises = snap.docs.map(lDoc => deleteDoc(doc(db, "lectures", lDoc.id)));
+    await Promise.all(deletePromises);
+
+    // 2. Delete the subject itself
+    await deleteDoc(doc(db, "subjects", id));
+  } catch (err) {
+    console.error("Error deleting subject:", err);
+    throw err;
+  }
+}
+
+/**
+ * Fetch all lectures for a specific subject
+ */
+export async function fetchLecturesBySubject(subjectId: string): Promise<Lecture[]> {
+  try {
+    const q = query(
+      collection(db, "lectures"), 
+      where("subjectId", "==", subjectId),
+      orderBy("order", "asc")
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lecture));
+  } catch (err) {
+    console.error("Error fetching lectures:", err);
+    return [];
+  }
+}
+
+/**
+ * Delete a specific lecture
+ */
+export async function deleteLecture(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "lectures", id));
+  } catch (err) {
+    console.error("Error deleting lecture:", err);
+    throw err;
+  }
+}
+
+/**
+ * Update a specific lecture (e.g. title, lock status, or questions)
+ */
+export async function updateLecture(id: string, data: Partial<Lecture>): Promise<void> {
+  try {
+    const docRef = doc(db, "lectures", id);
+    await updateDoc(docRef, data);
+  } catch (err) {
+    console.error("Error updating lecture:", err);
     throw err;
   }
 }

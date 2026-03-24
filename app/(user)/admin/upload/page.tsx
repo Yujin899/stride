@@ -15,12 +15,13 @@ import {
   Sparkles,
   Copy,
   Check,
-  Search,
-  Database,
   AlertCircle,
-  Loader2
+  Loader2,
+  ChevronRight,
+  Search,
+  Database
 } from "lucide-react";
-import BotController from "@/components/admin/BotController";
+import Link from "next/link";
 
 import { comfortaa, nunito } from "@/lib/fonts";
 
@@ -194,6 +195,13 @@ ${notebookLMText}`;
 
   return (
     <div className={`max-w-3xl mx-auto space-y-12 pb-20 ${nunito.className}`}>
+      {/* Breadcrumbs */}
+      <div className="flex items-center gap-2 text-xs font-black text-muted-foreground uppercase tracking-widest leading-none">
+        <Link href="/admin" className="hover:text-primary transition-colors">Dashboard</Link>
+        <ChevronRight size={10} className="opacity-30" />
+        <span className="text-amber-600/60">Lecture Forge</span>
+      </div>
+
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className={`${comfortaa.className} text-4xl text-foreground font-bold`}>
@@ -446,16 +454,6 @@ Return the output as structured plain text with clear headers. Be exhaustive —
             </div>
           </div>
         </section>
-      </div>
-
-      {/* Bot Control Section */}
-      <div className="space-y-6 pt-12">
-        <div className="flex items-center gap-3">
-          <div className="h-[2px] flex-1 bg-linear-to-r from-transparent to-primary/10" />
-          <h2 className={`${comfortaa.className} text-xl text-primary font-bold`}>Oracle Settings</h2>
-          <div className="h-[2px] flex-1 bg-linear-to-l from-transparent to-primary/10" />
-        </div>
-        <BotController />
       </div>
     </div>
   );

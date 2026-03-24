@@ -40,6 +40,7 @@ export interface Question {
 export interface Lecture {
   id: string;
   subjectId: string;       // ref: subjects
+  title?: string;          // optional display title
   order: number;           // auto: 1, 2, 3... per subject
   isLocked: boolean;       // default: true
   questions: Question[];   // embedded array
