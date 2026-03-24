@@ -4,6 +4,7 @@ import "./globals.css";
 
 import AuthInitializer from "@/components/auth/AuthInitializer";
 import AmbiancePlayer from "@/components/audio/AmbiancePlayer";
+import GlobalClickSound from "@/components/audio/GlobalClickSound";
 import PWAInstallPrompt from "@/components/layout/PWAInstallPrompt";
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export default function RootLayout({
       <body className={`${nunito.className} min-h-full flex flex-col`}>
         <AuthInitializer>
           <AmbiancePlayer />
+          <GlobalClickSound />
           <PWAInstallPrompt />
           {children}
         </AuthInitializer>

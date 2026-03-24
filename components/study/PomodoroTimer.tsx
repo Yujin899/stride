@@ -8,6 +8,7 @@ import TimerDisplay from "./TimerDisplay";
 import { saveStudySession } from "@/lib/weekplan-service";
 import { useAuthStore } from "@/store/authStore";
 import { useTimerStore } from "@/store/timerStore";
+import { useImmersiveStore } from "@/lib/store";
 
 interface PomodoroTimerProps {
   initialDuration?: number; // in minutes
@@ -38,9 +39,26 @@ export default function PomodoroTimer({
   const [isRinging, setIsRinging] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [isManualEnd, setIsManualEnd] = useState(false);
-
+  const { isTickEnabled, tickVolume } = useImmersiveStore();
+  
   const audioAlarmRef = useRef<HTMLAudioElement | null>(null);
+  const audioTickRef = useRef<HTMLAudioElement | null>(null);
   const tickIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Tick Sound Sync
+  useEffect(() => {
+    if (audioTickRef.current) {
+      audioTickRef.current.volume = tickVolume;
+      if (isRunning && isTickEnabled && !isRinging) {
+        // Use play() with catch to handle browser autoplay policies
+        audioTickRef.current.play().catch(() => {
+          // If autoplay fails, we just don't play. It will retry next state change.
+        });
+      } else {
+        audioTickRef.current.pause();
+      }
+    }
+  }, [isRunning, isTickEnabled, tickVolume, isRinging]);
 
   // Initialize durations in store
   useEffect(() => {
@@ -60,6 +78,11 @@ export default function PomodoroTimer({
       audioAlarmRef.current.addEventListener("timeupdate", handleTimeUpdate);
     }
 
+    audioTickRef.current = new Audio("/sounds/eight-ticks.mp3");
+    if (audioTickRef.current) {
+      audioTickRef.current.loop = true;
+    }
+
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
@@ -68,6 +91,10 @@ export default function PomodoroTimer({
       if (audioAlarmRef.current) {
         audioAlarmRef.current.pause();
         audioAlarmRef.current = null;
+      }
+      if (audioTickRef.current) {
+        audioTickRef.current.pause();
+        audioTickRef.current = null;
       }
     };
   }, []);

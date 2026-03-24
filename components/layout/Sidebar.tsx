@@ -24,7 +24,11 @@ export default function Sidebar({ user, role, streak }: SidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuthStore();
   const router = useRouter();
-  const { isAmbiancePlaying, setAmbiancePlaying, ambianceVolume, setAmbianceVolume } = useImmersiveStore();
+  const { 
+    isAmbiancePlaying, setAmbiancePlaying, ambianceVolume, setAmbianceVolume,
+    isTickEnabled, setTickEnabled, tickVolume, setTickVolume,
+    isClickEnabled, setClickEnabled, clickVolume, setClickVolume
+  } = useImmersiveStore();
 
   const handleLogout = async () => {
     await logout();
@@ -40,7 +44,7 @@ export default function Sidebar({ user, role, streak }: SidebarProps) {
   ];
 
   return (
-    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[240px] bg-surface flex-col z-40 shadow-sm transition-shadow">
+    <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-[240px] bg-surface flex-col z-40 shadow-sm transition-shadow overflow-y-auto scrollbar-hide">
       {/* Sidebar Header */}
       <div className="p-6">
         <Link href="/home" className="flex items-center px-1">
@@ -84,33 +88,90 @@ export default function Sidebar({ user, role, streak }: SidebarProps) {
       {/* Settings Panel */}
       <div className="px-4 pb-2">
         <div className="wooden-panel p-4! space-y-4 rounded-2xl border border-[rgba(212,184,122,0.2)]">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <img src="/settings.png" alt="" className="w-3 h-3 object-contain opacity-50" />
-              Ambiance 🌿
-            </span>
-            <button 
-              onClick={() => setAmbiancePlaying(!isAmbiancePlaying)}
-              className={`w-10 h-5 rounded-full relative transition-all ${isAmbiancePlaying ? 'bg-primary' : 'bg-[#EDE8DC]'}`}
-            >
-              <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${isAmbiancePlaying ? 'left-6' : 'left-1'}`} />
-            </button>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between text-[8px] font-black uppercase tracking-tighter text-muted-foreground">
-              <span>Volume</span>
-              <span>{Math.round(ambianceVolume * 100)}%</span>
+          {/* Ambiance */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <img src="/settings.png" alt="" className="w-3 h-3 object-contain opacity-50" />
+                Ambiance 🌿
+              </span>
+              <button 
+                onClick={() => setAmbiancePlaying(!isAmbiancePlaying)}
+                className={`w-10 h-5 rounded-full relative transition-all ${isAmbiancePlaying ? 'bg-primary' : 'bg-[#EDE8DC]'}`}
+              >
+                <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${isAmbiancePlaying ? 'left-6' : 'left-1'}`} />
+              </button>
             </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="1" 
-              step="0.01" 
-              value={ambianceVolume}
-              onChange={(e) => setAmbianceVolume(parseFloat(e.target.value))}
-              className="w-full h-1 bg-[#EDE8DC] rounded-lg appearance-none cursor-pointer accent-primary"
-            />
+            
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[8px] font-black uppercase tracking-tighter text-muted-foreground opacity-60">
+                <span>Volume {Math.round(ambianceVolume * 100)}%</span>
+              </div>
+              <input 
+                type="range" min="0" max="1" step="0.01" 
+                value={ambianceVolume}
+                onChange={(e) => setAmbianceVolume(parseFloat(e.target.value))}
+                className="w-full h-1 bg-[#EDE8DC] rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          </div>
+
+          <div className="h-px bg-primary/5 mx-2" />
+
+          {/* Clock Ticks */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                Clock Ticks 🕰️
+              </span>
+              <button 
+                onClick={() => setTickEnabled(!isTickEnabled)}
+                className={`w-10 h-5 rounded-full relative transition-all ${isTickEnabled ? 'bg-primary' : 'bg-[#EDE8DC]'}`}
+              >
+                <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${isTickEnabled ? 'left-6' : 'left-1'}`} />
+              </button>
+            </div>
+            
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[8px] font-black uppercase tracking-tighter text-muted-foreground opacity-60">
+                <span>Tick Volume {Math.round(tickVolume * 100)}%</span>
+              </div>
+              <input 
+                type="range" min="0" max="1" step="0.01" 
+                value={tickVolume}
+                onChange={(e) => setTickVolume(parseFloat(e.target.value))}
+                className="w-full h-1 bg-[#EDE8DC] rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          </div>
+
+          <div className="h-px bg-primary/5 mx-2" />
+
+          {/* Click Sounds */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                Click Sounds 🖱️
+              </span>
+              <button 
+                onClick={() => setClickEnabled(!isClickEnabled)}
+                className={`w-10 h-5 rounded-full relative transition-all ${isClickEnabled ? 'bg-primary' : 'bg-[#EDE8DC]'}`}
+              >
+                <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${isClickEnabled ? 'left-6' : 'left-1'}`} />
+              </button>
+            </div>
+            
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[8px] font-black uppercase tracking-tighter text-muted-foreground opacity-60">
+                <span>Click Volume {Math.round(clickVolume * 100)}%</span>
+              </div>
+              <input 
+                type="range" min="0" max="1" step="0.01" 
+                value={clickVolume}
+                onChange={(e) => setClickVolume(parseFloat(e.target.value))}
+                className="w-full h-1 bg-[#EDE8DC] rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
           </div>
         </div>
       </div>

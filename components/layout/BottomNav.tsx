@@ -14,7 +14,11 @@ interface BottomNavProps {
 export default function BottomNav({ role }: BottomNavProps) {
   const pathname = usePathname();
   const [showSettings, setShowSettings] = useState(false);
-  const { isAmbiancePlaying, setAmbiancePlaying, ambianceVolume, setAmbianceVolume } = useImmersiveStore();
+  const { 
+    isAmbiancePlaying, setAmbiancePlaying, ambianceVolume, setAmbianceVolume,
+    isTickEnabled, setTickEnabled, tickVolume, setTickVolume,
+    isClickEnabled, setClickEnabled, clickVolume, setClickVolume
+  } = useImmersiveStore();
 
   const navLinks = [
     { name: "Home", href: "/home", icon: "/home.png" },
@@ -84,6 +88,66 @@ export default function BottomNav({ role }: BottomNavProps) {
                 step="0.01" 
                 value={ambianceVolume}
                 onChange={(e) => setAmbianceVolume(parseFloat(e.target.value))}
+                className="w-full h-2 bg-[#EDE8DC] rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+
+            <div className="h-px bg-primary/10 my-2" />
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                Clock Ticks 🕰️
+              </span>
+              <button 
+                onClick={() => setTickEnabled(!isTickEnabled)}
+                className={`w-12 h-6 rounded-full relative transition-all ${isTickEnabled ? 'bg-primary' : 'bg-[#EDE8DC]'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isTickEnabled ? 'left-7' : 'left-1'}`} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter text-muted-foreground">
+                <span>Tick Volume</span>
+                <span>{Math.round(tickVolume * 100)}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.01" 
+                value={tickVolume}
+                onChange={(e) => setTickVolume(parseFloat(e.target.value))}
+                className="w-full h-2 bg-[#EDE8DC] rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+
+            <div className="h-px bg-primary/10 my-2" />
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                Click Sounds 🖱️
+              </span>
+              <button 
+                onClick={() => setClickEnabled(!isClickEnabled)}
+                className={`w-12 h-6 rounded-full relative transition-all ${isClickEnabled ? 'bg-primary' : 'bg-[#EDE8DC]'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isClickEnabled ? 'left-7' : 'left-1'}`} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter text-muted-foreground">
+                <span>Click Volume</span>
+                <span>{Math.round(clickVolume * 100)}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.01" 
+                value={clickVolume}
+                onChange={(e) => setClickVolume(parseFloat(e.target.value))}
                 className="w-full h-2 bg-[#EDE8DC] rounded-lg appearance-none cursor-pointer accent-primary"
               />
             </div>

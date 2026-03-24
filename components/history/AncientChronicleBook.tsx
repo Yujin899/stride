@@ -91,8 +91,16 @@ const IvyFrame = () => (
   </div>
 );
 
+interface ParticleConfig {
+  tx: number;
+  ty: number;
+  color: string;
+  size: number;
+  duration: number;
+}
+
 // ─── MAGIC PARTICLES ──────────────────────────────────────────────────────────
-const Particle = ({ x, y, config }: { x: number; y: number; config: any }) => (
+const Particle = ({ x, y, config }: { x: number; y: number; config: ParticleConfig }) => (
   <motion.div className="absolute rounded-full pointer-events-none"
     style={{ left: x, top: y, width: config.size, height: config.size, background: config.color, zIndex: 50 }}
     initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
