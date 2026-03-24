@@ -10,6 +10,7 @@ export async function getBotConfig(): Promise<BotConfig | null> {
       ...data,
       isEnabled: data.isEnabled ?? true,
       intervalHours: data.intervalHours ?? 2,
+      intervalMinutes: data.intervalMinutes || 0,
     };
   }
   return null;
@@ -24,6 +25,7 @@ export async function updateBotConfig(data: Partial<BotConfig>) {
     lastSentAt: data.lastSentAt || current?.lastSentAt,
     isEnabled: data.isEnabled !== undefined ? data.isEnabled : (current?.isEnabled ?? true),
     intervalHours: data.intervalHours || current?.intervalHours || 2,
+    intervalMinutes: data.intervalMinutes !== undefined ? data.intervalMinutes : (current?.intervalMinutes || 0),
   };
   await adminDb.collection("botConfig").doc("current").set(newData);
 }
@@ -41,9 +43,13 @@ export async function triggerBotCron(force = false) {
       return { success: false, error: "Auto-pilot is disabled" };
     }
     
-    if (config.lastSentAt && config.intervalHours) {
+    if (config.lastSentAt) {
       const lastSent = config.lastSentAt.toDate();
-      const nextAllowed = new Date(lastSent.getTime() + config.intervalHours * 3600 * 1000);
+      const intervalMs = config.intervalMinutes 
+        ? config.intervalMinutes * 60 * 1000
+        : (config.intervalHours || 2) * 3600 * 1000;
+      
+      const nextAllowed = new Date(lastSent.getTime() + intervalMs);
       const now = new Date();
       
       if (now < nextAllowed) {
@@ -91,6 +97,7 @@ export async function triggerBotCron(force = false) {
 
   // 4. Send to Telegram
   try {
+    console.log(`Oracle: Sending question to Chat ${config.chatId}`);
     if (q.type === "case" && q.scenario) {
       await sendMessage(config.chatId, `📖 <b>Case Study:</b>\n\n${q.scenario}\n\n<i>From: ${source}</i>`);
     }
@@ -104,15 +111,16 @@ export async function triggerBotCron(force = false) {
     );
 
     if (pollRes.ok) {
+      console.log("Oracle: Poll sent successfully!");
       // Update lastSentAt ONLY on success
       await updateBotConfig({ lastSentAt: admin.firestore.Timestamp.now() as any });
       return { success: true, question: q.text };
     } else {
-      console.error("Telegram API Error:", pollRes);
+      console.error("Oracle: Telegram API Error:", pollRes.description);
       return { success: false, error: pollRes.description };
     }
   } catch (err) {
-    console.error("Bot Error:", err);
+    console.error("Oracle: Internal Error during send:", err);
     return { success: false, error: "Internal Error" };
   }
 }

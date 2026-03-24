@@ -21,7 +21,7 @@ export default function BotController() {
           fetchAllSubjects()
         ]);
         const conf = await confRes.json();
-        setConfig(conf || { id: "current", subjectId: "random", chatId: "" });
+        setConfig(conf || { id: "current", subjectId: "random", chatId: "", isEnabled: true, intervalHours: 2, intervalMinutes: 0 });
         setSubjects(subs);
       } catch (err) {
         console.error("Bot init error:", err);
@@ -35,6 +35,7 @@ export default function BotController() {
   const handleSave = async () => {
     if (!config) return;
     setIsSaving(true);
+    setStatus(null);
     try {
       const res = await fetch("/api/bot/config", {
         method: "POST",
@@ -58,8 +59,6 @@ export default function BotController() {
       setStatus({ type: "error", msg: "Enter a Chat ID first!" });
       return;
     }
-    // Note: In client-side, we can't easily access CRON_SECRET, 
-    // so we should probably call the triggerBotCron directly since we are an Admin.
     setIsTriggering(true);
     setStatus(null);
     try {
@@ -85,22 +84,29 @@ export default function BotController() {
   // State for live countdown
   const [nextPollInfo, setNextPollInfo] = useState<{ time: string; countdown: string } | null>(null);
 
+  // Destructure for stable dependency array
+  const isEnabled = config?.isEnabled;
+  const lastSentAt = config?.lastSentAt;
+  const intervalHours = config?.intervalHours;
+  const intervalMinutes = config?.intervalMinutes;
+
   useEffect(() => {
-    if (!config?.isEnabled || !config?.lastSentAt) {
+    if (!isEnabled || !lastSentAt) {
       setNextPollInfo(null);
       return;
     }
 
     const updateTime = () => {
-      // Robustly handle both Firebase Client and Admin SDK timestamp serializations
-      const raw = config.lastSentAt as unknown as Record<string, number> | null;
+      const raw = lastSentAt as unknown as Record<string, number> | null;
       const seconds = raw?.seconds ?? raw?._seconds;
-      
       if (typeof seconds !== 'number') return;
       
       const last = new Date(seconds * 1000);
-      const interval = config.intervalHours || 2;
-      const next = new Date(last.getTime() + interval * 3600 * 1000);
+      const intervalMs = intervalMinutes 
+        ? intervalMinutes * 60 * 1000
+        : (intervalHours || 2) * 3600 * 1000;
+        
+      const next = new Date(last.getTime() + intervalMs);
       const now = new Date();
       
       const diffMs = next.getTime() - now.getTime();
@@ -110,17 +116,24 @@ export default function BotController() {
       } else {
         const h = Math.floor(diffMs / 3600000);
         const m = Math.floor((diffMs % 3600000) / 60000);
+        const s = Math.floor((diffMs % 60000) / 1000);
+        
+        let countdownStr = "";
+        if (h > 0) countdownStr = `${h}h ${m}m`;
+        else if (m > 0) countdownStr = `${m}m ${s}s`;
+        else countdownStr = `${s}s`;
+
         setNextPollInfo({
-          time: next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          countdown: h > 0 ? `${h}h ${m}m` : `${m}m`
+          time: next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          countdown: countdownStr
         });
       }
     };
 
     updateTime();
-    const timer = setInterval(updateTime, 60000);
+    const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
-  }, [config?.isEnabled, config?.lastSentAt, config?.intervalHours]);
+  }, [isEnabled, lastSentAt, intervalHours, intervalMinutes]);
 
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
@@ -145,7 +158,7 @@ export default function BotController() {
           <select 
             value={config?.subjectId || "random"}
             onChange={(e) => setConfig({ ...config!, subjectId: e.target.value })}
-            className="w-full bg-surface border-2 border-border/10 rounded-xl py-3 px-4 text-sm font-bold focus:border-secondary outline-hidden transition-colors"
+            className="w-full bg-surface border-2 border-border/10 rounded-xl py-3 px-4 text-sm font-bold focus:border-secondary outline-none transition-colors"
           >
             <option value="random">✨ Random Pool (All Subjects)</option>
             {subjects.map(s => (
@@ -164,7 +177,7 @@ export default function BotController() {
             value={config?.chatId || ""}
             placeholder="-100xxxxxxx"
             onChange={(e) => setConfig({ ...config!, chatId: e.target.value })}
-            className="w-full bg-surface border-2 border-border/10 rounded-xl py-3 px-4 text-sm font-bold focus:border-primary outline-hidden transition-colors"
+            className="w-full bg-surface border-2 border-border/10 rounded-xl py-3 px-4 text-sm font-bold focus:border-primary outline-none transition-colors"
           />
         </div>
 
@@ -176,7 +189,7 @@ export default function BotController() {
           <div className="flex items-center gap-3 bg-surface border-2 border-border/10 rounded-xl py-2 px-4">
             <button 
               onClick={() => setConfig({ ...config!, isEnabled: !config?.isEnabled })}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${config?.isEnabled ? 'bg-primary' : 'bg-gray-200'}`}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${config?.isEnabled ? 'bg-primary' : 'bg-gray-200'}`}
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${config?.isEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -190,10 +203,19 @@ export default function BotController() {
             <Loader2 size={12} className="text-amber-500" /> Poll Frequency
           </label>
           <select 
-            value={config?.intervalHours || 2}
-            onChange={(e) => setConfig({ ...config!, intervalHours: parseInt(e.target.value) })}
-            className="w-full bg-surface border-2 border-border/10 rounded-xl py-3 px-4 text-sm font-bold focus:border-amber-500 outline-hidden transition-colors"
+            value={config?.intervalMinutes ? `m-${config.intervalMinutes}` : config?.intervalHours || 2}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val.startsWith("m-")) {
+                setConfig({ ...config!, intervalMinutes: parseInt(val.split("-")[1]), intervalHours: 0 });
+              } else {
+                setConfig({ ...config!, intervalMinutes: 0, intervalHours: parseInt(val) });
+              }
+            }}
+            className="w-full bg-surface border-2 border-border/10 rounded-xl py-3 px-4 text-sm font-bold focus:border-amber-500 outline-none transition-colors"
           >
+            <option value="m-2">🧪 Test Mode (2 Minutes)</option>
+            <option value="m-5">🧪 Test Mode (5 Minutes)</option>
             <option value={1}>Every 1 Hour</option>
             <option value={2}>Every 2 Hours</option>
             <option value={3}>Every 3 Hours</option>
@@ -224,18 +246,18 @@ export default function BotController() {
               <div className={`text-xl font-black italic tracking-tight leading-none ${
                 nextPollInfo ? "text-primary" : "text-amber-600"
               }`}>
-                {nextPollInfo ? `IN ${nextPollInfo.countdown}` : "WAITING FOR HEARTBEAT"}
+                {nextPollInfo?.time === "Pending..." ? "PENDING..." : `IN ${nextPollInfo?.countdown || "..."}`}
               </div>
             </div>
           </div>
 
           <div className="w-full md:w-auto flex flex-col items-center md:items-end border-t md:border-t-0 md:border-l border-current/10 pt-4 md:pt-0 md:pl-6">
             <div className="text-[10px] font-black uppercase tracking-wider opacity-40 mb-1">Schedule Details</div>
-            {nextPollInfo ? (
+            {nextPollInfo && nextPollInfo.time !== "Pending..." ? (
               <div className="text-xs font-bold whitespace-nowrap">Scheduled at <span className="text-primary italic">{nextPollInfo.time}</span></div>
             ) : (
               <div className="text-[10px] font-bold leading-tight max-w-[150px] text-center md:text-right">
-                Trigger a **Test Poll** below to initialize your schedule.
+                {nextPollInfo?.time === "Pending..." ? "Waiting for Heartbeat/Cron signal..." : "Trigger a **Test Poll** below to initialize your schedule."}
               </div>
             )}
           </div>

@@ -135,4 +135,5 @@ export interface BotConfig {
   lastSentAt?: Timestamp;
   isEnabled: boolean;       // Auto-Pilot toggle
   intervalHours: number;    // Frequency (1, 2, 3...)
+  intervalMinutes?: number;  // Test Frequency (e.g. 2, 5)
 }
