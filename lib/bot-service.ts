@@ -27,6 +27,10 @@ export async function updateBotConfig(data: Partial<BotConfig>) {
     intervalHours: data.intervalHours || current?.intervalHours || 2,
     intervalMinutes: data.intervalMinutes !== undefined ? data.intervalMinutes : (current?.intervalMinutes || 0),
   };
+  
+  const lastTime = newData.lastSentAt ? (typeof newData.lastSentAt.toDate === 'function' ? newData.lastSentAt.toDate() : new Date((newData.lastSentAt as any)._seconds * 1000 || (newData.lastSentAt as any).seconds * 1000)) : null;
+  console.log("Oracle Service: Updating config. lastSentAt:", lastTime?.toLocaleTimeString(), "IntervalMin:", newData.intervalMinutes);
+  
   await adminDb.collection("botConfig").doc("current").set(newData);
 }
 
@@ -56,7 +60,8 @@ export async function triggerBotCron(force = false) {
         const remainingMin = Math.ceil((nextAllowed.getTime() - now.getTime()) / 60000);
         return { 
           success: false, 
-          error: `Interval not reached. Next in ${remainingMin} mins.`,
+          error: `Interval not reached. Next in ${remainingMin} mins (${nextAllowed.toLocaleTimeString()}).`,
+          nextAllowed: nextAllowed.toISOString(),
           isSkipped: true 
         };
       }

@@ -111,12 +111,18 @@ export default function BotController() {
       
       const diffMs = next.getTime() - now.getTime();
       
-      if (diffMs <= 0) {
+      console.log(`[Oracle Debug] now=${now.toLocaleTimeString()}, last=${last.toLocaleTimeString()}, next=${next.toLocaleTimeString()}, diffMs=${diffMs}, intervalMin=${intervalMinutes}, intervalHrs=${intervalHours}`);
+
+      // Grace period: allow 60 seconds of clock skew (some machines are quite far off)
+      if (diffMs <= -60000) {
         setNextPollInfo({ time: "Pending...", countdown: "Now" });
+      } else if (diffMs <= 0) {
+        setNextPollInfo({ time: "Pending...", countdown: "Just Now" });
       } else {
-        const h = Math.floor(diffMs / 3600000);
-        const m = Math.floor((diffMs % 3600000) / 60000);
-        const s = Math.floor((diffMs % 60000) / 1000);
+        const totalSecs = Math.floor(diffMs / 1000);
+        const h = Math.floor(totalSecs / 3600);
+        const m = Math.floor((totalSecs % 3600) / 60);
+        const s = totalSecs % 60;
         
         let countdownStr = "";
         if (h > 0) countdownStr = `${h}h ${m}m`;
@@ -207,15 +213,16 @@ export default function BotController() {
             onChange={(e) => {
               const val = e.target.value;
               if (val.startsWith("m-")) {
-                setConfig({ ...config!, intervalMinutes: parseInt(val.split("-")[1]), intervalHours: 0 });
+                setConfig({ ...config!, intervalMinutes: parseFloat(val.split("-")[1]), intervalHours: 0 });
               } else {
                 setConfig({ ...config!, intervalMinutes: 0, intervalHours: parseInt(val) });
               }
             }}
             className="w-full bg-surface border-2 border-border/10 rounded-xl py-3 px-4 text-sm font-bold focus:border-amber-500 outline-none transition-colors"
           >
+            <option value="m-0.5">🧪 Test Mode (30 Seconds)</option>
+            <option value="m-1">🧪 Test Mode (1 Minute)</option>
             <option value="m-2">🧪 Test Mode (2 Minutes)</option>
-            <option value="m-5">🧪 Test Mode (5 Minutes)</option>
             <option value={1}>Every 1 Hour</option>
             <option value={2}>Every 2 Hours</option>
             <option value={3}>Every 3 Hours</option>

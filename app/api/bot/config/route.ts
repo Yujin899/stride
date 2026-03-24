@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { getSessionToken } from "@/lib/auth/session";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { getBotConfig, updateBotConfig } from "@/lib/bot-service";
@@ -30,8 +31,10 @@ export async function GET() {
 
   try {
     const config = await getBotConfig();
+    console.log("Oracle API: Returning config with lastSentAt:", config?.lastSentAt?.toDate().toLocaleTimeString());
     return NextResponse.json(config);
-  } catch (_err) {
+  } catch (err) {
+    console.error("Oracle API ERROR:", err);
     return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }

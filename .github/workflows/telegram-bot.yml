@@ -2,7 +2,7 @@ name: Stride Telegram Bot Cron
 
 on:
   schedule:
-    - cron: '*/30 * * * *' # Every 30 minutes (Smart Trigger heartbeat)
+    - cron: '*/5 * * * *' # Every 5 minutes (GitHub's maximum frequency)
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
@@ -16,4 +16,5 @@ jobs:
             exit 1
           fi
           echo "🚀 Triggering bot at ${{ secrets.BOT_URL }}..."
-          curl -s -X GET "${{ secrets.BOT_URL }}/api/bot/cron?key=${{ secrets.CRON_SECRET }}"
+          curl -s -X GET "${{ secrets.BOT_URL }}/api/bot/cron?key=${{ secrets.CRON_SECRET }}" \
+            -H "X-Stride-Source: github-action"
