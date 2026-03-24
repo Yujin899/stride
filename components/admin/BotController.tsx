@@ -196,6 +196,20 @@ export default function BotController() {
         </div>
       </div>
 
+      {!nextPollInfo && config?.isEnabled && (
+        <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4 flex items-center justify-between animate-in fade-in">
+          <div className="space-y-1">
+            <div className="text-[10px] font-black uppercase tracking-widest text-amber-500/60">Ready for Launch</div>
+            <div className="text-lg font-black text-amber-600 leading-none flex items-center gap-2">
+              WAITING FOR TRANSMISSION
+            </div>
+          </div>
+          <div className="text-right max-w-[150px]">
+            <div className="text-[10px] font-bold text-amber-600 italic leading-tight">Click "Trigger Test Poll" below to initialize the schedule.</div>
+          </div>
+        </div>
+      )}
+
       {nextPollInfo && (
         <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-center justify-between animate-in fade-in duration-500">
           <div className="space-y-1">
