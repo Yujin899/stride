@@ -68,6 +68,10 @@ export default function BotController() {
       
       if (res.ok && data.success) {
         setStatus({ type: "success", msg: `Poll sent: ${data.question}` });
+        // Refresh config to get new lastSentAt and update countdown
+        const confRes = await fetch("/api/bot/config");
+        const updatedConf = await confRes.json();
+        if (updatedConf) setConfig(updatedConf);
       } else {
         setStatus({ type: "error", msg: data.error || "Execution failed" });
       }
@@ -205,7 +209,7 @@ export default function BotController() {
             </div>
           </div>
           <div className="text-right max-w-[150px]">
-            <div className="text-[10px] font-bold text-amber-600 italic leading-tight">Click "Trigger Test Poll" below to initialize the schedule.</div>
+            <div className="text-[10px] font-bold text-amber-600 italic leading-tight">Click &quot;Trigger Test Poll&quot; below to initialize the schedule.</div>
           </div>
         </div>
       )}
