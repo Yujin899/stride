@@ -31,13 +31,26 @@ export const saveStudySession = async (session: Omit<StudySession, "id" | "compl
 export const getUserSessions = async (userId: string): Promise<StudySession[]> => {
   const q = query(sessionsCol, where("userId", "==", userId));
   const snap = await getDocs(q);
-  const data = snap.docs.map(doc => doc.data() as StudySession);
+  const data = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as StudySession));
   
-  // In-memory sort to avoid composite index requirement
   return data.sort((a, b) => {
     const dateA = toDate(a.completedAt)?.getTime() || 0;
     const dateB = toDate(b.completedAt)?.getTime() || 0;
-    return dateB - dateA; // Descending order
+    return dateB - dateA;
+  });
+};
+
+/**
+ * Fetches all study history for all users
+ */
+export const getAllSessions = async (): Promise<StudySession[]> => {
+  const snap = await getDocs(sessionsCol);
+  const data = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as StudySession));
+  
+  return data.sort((a, b) => {
+    const dateA = toDate(a.completedAt)?.getTime() || 0;
+    const dateB = toDate(b.completedAt)?.getTime() || 0;
+    return dateB - dateA;
   });
 };
 
