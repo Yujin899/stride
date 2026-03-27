@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getUserSessions } from "@/lib/weekplan-service";
+import { getUserSessions } from "@/lib/session-service";
 import { useAuthStore } from "@/store/authStore";
 import { StudySession } from "@/types";
 import { comfortaa } from "@/lib/fonts";

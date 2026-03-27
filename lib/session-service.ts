@@ -1,13 +1,12 @@
 import { 
   getDocs,
   query,
-  orderBy,
   where,
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { Subject, Lecture, StudySession } from "@/types";
-import { subjectsCol, lecturesCol, sessionsCol, toDate } from "./firebase/collections";
+import { StudySession } from "@/types";
+import { sessionsCol, toDate } from "./firebase/collections";
 
 /**
  * Saves a completed study session to history
@@ -47,25 +46,4 @@ export const getAllSessions = async (): Promise<StudySession[]> => {
     const dateB = toDate(b.completedAt)?.getTime() || 0;
     return dateB - dateA;
   });
-};
-
-/**
- * Fetches real lectures for a given subject
- */
-export const getLecturesBySubject = async (subjectId: string): Promise<Lecture[]> => {
-  // Use in-memory sort to avoid needing a composite index
-  const q = query(lecturesCol, where("subjectId", "==", subjectId));
-  const snap = await getDocs(q);
-  return snap.docs
-    .map(doc => doc.data() as Lecture)
-    .sort((a, b) => (a.order || 0) - (b.order || 0));
-};
-
-/**
- * Fetches all available subjects
- */
-export const getSubjects = async (): Promise<Subject[]> => {
-  const q = query(subjectsCol, orderBy("name"));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => doc.data() as Subject);
 };

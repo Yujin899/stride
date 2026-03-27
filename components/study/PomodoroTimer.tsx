@@ -5,7 +5,7 @@ import { Play, Pause, RotateCcw, Plus, Minus, Square, CheckCircle2, Home, Coffee
 import { comfortaa, nunito } from "@/lib/fonts";
 import { useRouter } from "next/navigation";
 import TimerDisplay from "./TimerDisplay";
-import { saveStudySession } from "@/lib/weekplan-service";
+import { saveStudySession } from "@/lib/session-service";
 import { useAuthStore } from "@/store/authStore";
 import { useTimerStore } from "@/store/timerStore";
 import { useImmersiveStore } from "@/lib/store";

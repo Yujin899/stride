@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { setSessionCookie, removeSessionCookie } from "@/lib/auth/session";
+import { setSessionCookie, removeSessionCookie, encryptSession } from "@/lib/auth/session";
+import { adminAuth } from "@/lib/firebase/admin";
 
 /**
  * Handles setting and removing the session cookie via ID Token exchange.
@@ -11,7 +12,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "ID Token required" }, { status: 400 });
     }
 
-    await setSessionCookie(idToken);
+    // 1. Verify the Firebase ID Token
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    
+    // 2. Create our own long-lived session token (5 days)
+    const sessionToken = await encryptSession({
+      sub: decodedToken.uid, // Subject is UID
+      role: decodedToken.role || "user",
+      name: decodedToken.name || decodedToken.email,
+    });
+
+    // 3. Set the cookie
+    await setSessionCookie(sessionToken);
+    
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";

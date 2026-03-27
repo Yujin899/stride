@@ -10,7 +10,8 @@ import {
   Timestamp,
   updateDoc,
   deleteDoc,
-  doc
+  doc,
+  arrayUnion
 } from "firebase/firestore";
 import { db } from "./firebase/config";
 import { Subject, Lecture, Question } from "@/types";
@@ -100,19 +101,14 @@ export async function uploadLecture(
       id: crypto.randomUUID(),
       title: quizTitle,
       questions,
-      createdAt: serverTimestamp() as any
+      createdAt: Timestamp.now()
     };
 
     if (!snap.empty) {
-      // Append to existing lecture
+      // Append to existing lecture using arrayUnion to be safe and efficient
       const docId = snap.docs[0].id;
-      const existingData = snap.docs[0].data() as Lecture;
-      const quizzes = existingData.quizzes || [];
-      
-      // If legacy questions exist, move them to quizzes too? 
-      // For now, just prepend/append the new one.
       await updateDoc(doc(db, "lectures", docId), {
-        quizzes: [...quizzes, newQuiz]
+        quizzes: arrayUnion(newQuiz)
       });
       return docId;
     } else {
@@ -123,7 +119,7 @@ export async function uploadLecture(
         isLocked,
         title: lectureTitle,
         quizzes: [newQuiz],
-        createdAt: serverTimestamp() as unknown as Timestamp,
+        createdAt: Timestamp.now(), // Changed to now() for consistency in array-containing docs
       };
       
       const docRef = await addDoc(collection(db, "lectures"), newLecture);

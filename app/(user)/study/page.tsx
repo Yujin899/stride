@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSubjects } from "@/lib/weekplan-service";
+import { fetchAllSubjects } from "@/lib/admin-service";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Subject, Lecture } from "@/types";
@@ -22,7 +22,7 @@ export default function StudyLibraryPage() {
   useEffect(() => {
     async function loadLibrary() {
       try {
-        const subjs = await getSubjects();
+        const subjs = await fetchAllSubjects();
         setSubjects(subjs);
 
         const lectsRef = collection(db, "lectures");

@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { getUserMistakes, markMistakeAsReviewed, MistakeWithContent } from "@/lib/mistake-service";
-import { getSubjects } from "@/lib/weekplan-service";
+import { fetchAllSubjects } from "@/lib/admin-service";
 import { Subject } from "@/types";
 import { Comfortaa, Nunito } from "next/font/google";
 import { Check, X, Loader2, Filter, Info } from "lucide-react";
@@ -24,7 +24,7 @@ export default function MistakesPage() {
       try {
         const [mistakeData, subjectData] = await Promise.all([
           getUserMistakes(user.id),
-          getSubjects()
+          fetchAllSubjects()
         ]);
         setMistakes(mistakeData);
         setSubjects(subjectData);

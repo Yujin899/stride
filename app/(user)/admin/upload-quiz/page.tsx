@@ -112,6 +112,15 @@ export default function QuizExpansionPage() {
   // Handlers
   const handleGeneratePrompt = () => {
     if (!notebookLMText.trim()) return;
+    
+    let redundancyContext = "";
+    if (existingQuestionsJson) {
+      redundancyContext = `
+CRITICAL: DO NOT REPEAT OR DUPLICATE any of the following existing questions:
+${existingQuestionsJson}
+`;
+    }
+
     const prompt = `Convert the following medical lecture content into a structured dental quiz JSON.
 Requirements:
 - Output ONLY a JSON array of questions, nothing else.
@@ -125,7 +134,7 @@ Requirements:
     correctIndex: number;
     explanation: string; // clear explanation of the correct choice
   }
-- Target 10-15 high-quality questions if possible.
+- Target 10-15 high-quality questions if possible.${redundancyContext}
 
 Content:
 ${notebookLMText}`;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSubjects } from "@/lib/weekplan-service";
+import { fetchAllSubjects } from "@/lib/admin-service";
 import { Subject } from "@/types";
 import { Comfortaa, Nunito } from "next/font/google";
 import { GraduationCap, Loader2, ChevronLeft, Search, RotateCcw } from "lucide-react";
@@ -22,7 +22,7 @@ export default function PomodoroPage() {
   useEffect(() => {
     async function init() {
       try {
-        const subjs = await getSubjects();
+        const subjs = await fetchAllSubjects();
         setSubjects(subjs);
       } catch (err) {
         console.error("Pomodoro init error:", err);

@@ -5,7 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import { StudySession } from "@/types";
 import { Timestamp } from "firebase/firestore";
 import FocusBlooms from "@/components/home/FocusBlooms";
-import { getUserSessions } from "@/lib/weekplan-service";
+import { getUserSessions } from "@/lib/session-service";
 import { getLeaderboard, LeaderboardEntry } from "@/lib/user-service";
 import { 
   ChevronRight, 
