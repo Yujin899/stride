@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Pause, RotateCcw, Plus, Minus, Square, CheckCircle2, Home, Coffee, BookOpen } from "lucide-react";
-import { comfortaa, nunito } from "@/lib/fonts";
+import { Play, Pause, RotateCcw, Square, CheckCircle2, Home, Coffee, BookOpen } from "lucide-react";
+import { comfortaa } from "@/lib/fonts";
 import { useRouter } from "next/navigation";
 import TimerDisplay from "./TimerDisplay";
 import { saveStudySession } from "@/lib/session-service";
@@ -233,7 +233,7 @@ export default function PomodoroTimer({
   };
 
   const resetTimer = () => {
-    reset(initialDuration);
+    reset(storeWorkDur);
     setIsRinging(false);
     setSessionCompleted(false);
     if (audioAlarmRef.current) {
@@ -243,12 +243,9 @@ export default function PomodoroTimer({
   };
 
   const endSessionEarly = () => {
-    const currentMode = useTimerStore.getState().mode;
-    const currentWorkMins = useTimerStore.getState().initialWorkDuration;
-    
     pause();
-    if (currentMode === "work") {
-      const elapsed = currentWorkMins * 60 - timeLeft;
+    if (mode === "work") {
+      const elapsed = storeWorkDur * 60 - timeLeft;
       persistSession(elapsed);
     }
     setSessionCompleted(true);
@@ -256,44 +253,24 @@ export default function PomodoroTimer({
     if (audioAlarmRef.current) { audioAlarmRef.current.pause(); }
   };
 
-  const adjustDuration = (amount: number) => {
-    if (isRunning || isRinging || mode !== "work") return;
-    const newDur = Math.max(1, Math.min(120, storeWorkDur + amount));
-    setDurations(newDur, storeBreakDur);
-  };
-
   // Render Helpers
-  const currentInitialDuration = mode === "work" ? storeWorkDur : storeBreakDur;
-  const totalElapsed = currentInitialDuration * 60 - timeLeft;
-  const currentTotal = currentInitialDuration * 60;
-  
-  const minuteRotation = (totalElapsed / currentTotal) * 360;
-  const secondRotation = totalElapsed * 6;
-  const digitalTime = timeLeft >= 60 ? Math.floor(timeLeft / 60) : `${timeLeft}s`;
-  
-  const qValues = {
-    top: 0,
-    right: Math.round(currentInitialDuration / 4),
-    bottom: Math.round(currentInitialDuration / 2),
-    left: Math.round(currentInitialDuration * 3 / 4)
-  };
+  const digitalTime = timeLeft >= 60 
+    ? `${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}` 
+    : `${timeLeft}s`;
 
   return (
-    <div className="flex flex-col items-center gap-10 py-10 relative">
+    <div className="flex flex-col items-center gap-12 py-12 relative w-full max-w-md mx-auto">
+      {/* 1. Timer Display Area */}
       <div className="relative">
         <TimerDisplay 
           mode={mode} 
           isRinging={isRinging} 
-          minuteRotation={minuteRotation} 
-          secondRotation={secondRotation} 
           digitalTime={digitalTime} 
-          qValues={qValues} 
         />
 
         {sessionCompleted && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-30 animate-in fade-in zoom-in duration-300 bg-[#FEFCF7]/95 backdrop-blur-md rounded-full">
-            <div className="flex flex-col gap-3 w-52 scale-90">
-              {/* Button 1: Go to Quiz / Back to Library */}
+            <div className="flex flex-col gap-3 w-52 scale-95">
               {lectureId ? (
                 <button
                   onClick={() => router.push(`/quiz/${lectureId}`)}
@@ -310,12 +287,11 @@ export default function PomodoroTimer({
                 </button>
               )}
 
-              {/* Button 2: Dynamic Middle Button */}
               {mode === "work" && !isManualEnd ? (
                 <button
                   onClick={() => {
                     setMode("break");
-                    start(breakDuration);
+                    start(storeBreakDur);
                     setSessionCompleted(false);
                     setIsRinging(false);
                     if (audioAlarmRef.current) { audioAlarmRef.current.pause(); audioAlarmRef.current.currentTime = 0; }
@@ -327,9 +303,9 @@ export default function PomodoroTimer({
               ) : (
                 <button
                   onClick={() => {
-                    reset(initialDuration);
+                    reset(storeWorkDur);
                     setMode("work");
-                    start(initialDuration);
+                    start(storeWorkDur);
                     setSessionCompleted(false);
                     setIsRinging(false);
                     if (audioAlarmRef.current) { audioAlarmRef.current.pause(); audioAlarmRef.current.currentTime = 0; }
@@ -340,7 +316,6 @@ export default function PomodoroTimer({
                 </button>
               )}
 
-              {/* Button 3: Go to Home */}
               <button
                 onClick={() => router.push("/")}
                 className="bg-white text-foreground border-2 border-[rgba(212,184,122,0.3)] px-5 py-4 rounded-xl font-black shadow-sm hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
@@ -352,48 +327,84 @@ export default function PomodoroTimer({
         )}
       </div>
 
-      {!sessionCompleted && mode !== "completed" && (
-        <div className="flex flex-col items-center gap-6">
-          <div className="flex items-center gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* 2. Controls & Inputs Area */}
+      {!sessionCompleted && (
+        <div className="flex flex-col items-center gap-8 w-full">
+          {/* Duration Inputs */}
+          <div className={`grid grid-cols-2 gap-4 w-full px-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200`}>
+            {/* Study Input */}
+            <div className="flex flex-col gap-2 p-4 bg-white rounded-3xl border-2 border-slate-100 shadow-sm transition-all focus-within:border-tomato/30">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Study (min)</label>
+              <input 
+                type="number" 
+                min="1" 
+                max="120"
+                disabled={isRunning || isRinging}
+                value={storeWorkDur}
+                onChange={(e) => setDurations(parseInt(e.target.value) || 1, storeBreakDur)}
+                className="bg-transparent text-2xl font-black text-slate-800 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+            </div>
+            {/* Break Input */}
+            <div className="flex flex-col gap-2 p-4 bg-white rounded-3xl border-2 border-slate-100 shadow-sm transition-all focus-within:border-green-500/30">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Break (min)</label>
+              <input 
+                type="number" 
+                min="1" 
+                max="60"
+                disabled={isRunning || isRinging}
+                value={storeBreakDur}
+                onChange={(e) => setDurations(storeWorkDur, parseInt(e.target.value) || 1)}
+                className="bg-transparent text-2xl font-black text-slate-800 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+            </div>
+          </div>
+
+          {/* Main Actions */}
+          <div className="flex items-center gap-8">
             <button 
-              onClick={() => adjustDuration(-5)} 
-              disabled={isRunning || isRinging || mode !== "work"} 
-              className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-foreground border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
+              onClick={resetTimer} 
+              title="Reset"
+              className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-all active:scale-95"
             >
-              <Minus size={22} />
+              <RotateCcw size={24} />
             </button>
-            
-            <div className="flex flex-col items-center min-w-[120px]">
-              <span className={`${nunito.className} text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 opacity-70`}>
-                {mode === "work" ? "Study Session" : "Refresh Break"}
-              </span>
-              <div className="flex items-baseline gap-1">
-                <span className={`${comfortaa.className} text-2xl font-black text-primary`}>
-                  {currentInitialDuration}
-                </span>
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">min</span>
-              </div>
+
+            <div className="relative group">
+              <button 
+                onClick={toggleTimer} 
+                className={`w-24 h-24 rounded-full flex items-center justify-center shadow-xl transition-all active:scale-90 hover:scale-105 ${
+                  isRunning ? "bg-slate-800 text-white shadow-slate-200" : "bg-primary text-white shadow-primary/20"
+                }`}
+              >
+                {isRunning ? <Pause size={40} fill="currentColor" /> : <Play size={40} fill="currentColor" className="ml-2" />}
+              </button>
+              {!isRunning && !isRinging && (
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">
+                  Start Session
+                </div>
+              )}
             </div>
 
             <button 
-              onClick={() => adjustDuration(5)} 
-              disabled={isRunning || isRinging || mode !== "work"} 
-              className="w-12 h-12 bg-[#EDE8DC] rounded-xl flex items-center justify-center text-foreground border-2 border-[rgba(212,184,122,0.3)] hover:bg-[#FEFCF7] hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100"
+              onClick={endSessionEarly} 
+              disabled={!isRunning && !isRinging}
+              className="w-16 h-16 bg-tomato/10 rounded-2xl flex items-center justify-center text-tomato hover:bg-tomato/20 transition-all active:scale-95 disabled:opacity-0 pointer-events-auto disabled:pointer-events-none"
             >
-              <Plus size={22} />
+              <Square size={24} fill="currentColor" strokeWidth={0} />
             </button>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <button onClick={resetTimer} className="w-14 h-14 bg-[#EDE8DC] rounded-2xl flex items-center justify-center text-foreground border-2 border-[rgba(212,184,122,0.3)] transition-all shadow-sm"><RotateCcw size={22} /></button>
-            <button onClick={toggleTimer} className="w-20 h-20 bg-primary text-white rounded-4xl flex items-center justify-center shadow-[0_8px_0_#5C420D] hover:translate-y-0.5 transition-all">{isRunning ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" className="ml-1" />}</button>
-            <button onClick={endSessionEarly} className="w-14 h-14 bg-[#EDE8DC] rounded-2xl flex items-center justify-center text-tomato border-2 border-[rgba(212,184,122,0.3)] transition-all shadow-sm"><Square size={22} fill="currentColor" strokeWidth={0} /></button>
           </div>
         </div>
       )}
 
-      <div className="mt-4 text-xs font-bold text-muted-foreground tracking-widest uppercase">
-        Total Studied: {Math.floor(totalSecondsStudied / 60)}m {totalSecondsStudied % 60}s
+      {/* Footer Stats */}
+      <div className="opacity-50 hover:opacity-100 transition-opacity flex flex-col items-center gap-1">
+        <div className="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase">
+          Daily Stride Progress
+        </div>
+        <div className={`text-sm font-black text-slate-600 ${comfortaa.className}`}>
+          {Math.floor(totalSecondsStudied / 60)}m {totalSecondsStudied % 60}s Studied Today
+        </div>
       </div>
     </div>
   );

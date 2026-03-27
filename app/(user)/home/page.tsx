@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { StudySession } from "@/types";
-import { Timestamp } from "firebase/firestore";
+import { QuizAttempt } from "@/types";
+import { Timestamp, query, where, getDocs } from "firebase/firestore";
 import FocusBlooms from "@/components/home/FocusBlooms";
-import { getUserSessions } from "@/lib/session-service";
+import { quizAttemptsCol } from "@/lib/firebase/collections";
 import { getLeaderboard, LeaderboardEntry } from "@/lib/user-service";
 import { 
   ChevronRight, 
@@ -30,7 +30,7 @@ export default function HomePage() {
   const router = useRouter();
   
   // State
-  const [todaySessions, setTodaySessions] = useState<StudySession[]>([]);
+  const [todayQuizzes, setTodayQuizzes] = useState<QuizAttempt[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,21 +44,23 @@ export default function HomePage() {
       
       setIsLoading(true);
       try {
-        const [sessions, leaderboardData] = await Promise.all([
-          getUserSessions(user.id),
+        const q = query(quizAttemptsCol, where("userId", "==", user.id));
+        const [quizSnap, leaderboardData] = await Promise.all([
+          getDocs(q),
           getLeaderboard()
         ]);
         
-        // Filter sessions for today
+        const allUserQuizzes = quizSnap.docs.map(doc => doc.data() as QuizAttempt);
+
+        // Filter for today
         const todayStr = format(new Date(), "yyyy-MM-dd");
-        const filtered = sessions.filter(s => {
-          if (!s.completedAt) return false;
-          const completedAt = s.completedAt as Timestamp | Date;
-          const d = (completedAt as Timestamp).toDate ? (completedAt as Timestamp).toDate() : completedAt as Date;
-          const sDate = format(d, "yyyy-MM-dd");
-          return sDate === todayStr && s.type === "work";
+        const filteredQuizzes = allUserQuizzes.filter(q => {
+          if (!q.completedAt) return false;
+          const d = (q.completedAt as Timestamp).toDate ? (q.completedAt as Timestamp).toDate() : (q.completedAt as unknown as Date);
+          return format(d, "yyyy-MM-dd") === todayStr;
         });
-        setTodaySessions(filtered);
+
+        setTodayQuizzes(filteredQuizzes);
         setLeaderboard(leaderboardData);
       } catch (err: unknown) {
         console.error("HomePage initialization error:", err);
@@ -95,7 +97,7 @@ export default function HomePage() {
         </div>
 
         {/* Today's Focus Blooms (Session Tracker) */}
-        <FocusBlooms sessions={todaySessions} />
+        <FocusBlooms quizzes={todayQuizzes} />
       </div>
 
       {/* Quick Exploration */}
