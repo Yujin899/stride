@@ -168,9 +168,6 @@ export default function HomePage() {
              <h3 className="text-2xl font-black text-foreground tracking-tight">Stride League 🏆</h3>
              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Global Scholarly Rankings</p>
            </div>
-           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 text-secondary text-[10px] font-black uppercase tracking-widest">
-              Resets Monday
-           </div>
         </div>
 
         <div className="wooden-panel p-0! overflow-hidden border-2 border-border/10 shadow-warm">
