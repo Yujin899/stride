@@ -30,6 +30,7 @@ export default function BottomNav({ role }: BottomNavProps) {
 
   const navLinks: NavLink[] = [
     { name: "Home", href: "/home", image: "/home.png" },
+    { name: "Pomodoro", href: "/pomodoro", image: "/tomato.png" },
     { name: "Study", href: "/study", image: "/study.png" },
     { name: "Mistakes", href: "/mistakes", image: "/mistakes.png" },
   ];

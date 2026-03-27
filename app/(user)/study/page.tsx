@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase/config";
 import { Subject, Lecture } from "@/types";
 import Link from "next/link";
 import { Comfortaa, Nunito } from "next/font/google";
-import { GraduationCap, ChevronRight, Loader2, Search } from "lucide-react";
+import { GraduationCap, ChevronRight, ChevronDown, Loader2, Search, BookOpen, Sparkles, ArrowRight } from "lucide-react";
 
 const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "800"] });
@@ -17,6 +17,7 @@ export default function StudyLibraryPage() {
   const [lectures, setLectures] = useState<Record<string, Lecture[]>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedLectureId, setExpandedLectureId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadLibrary() {
@@ -108,24 +109,77 @@ export default function StudyLibraryPage() {
 
             <div className="bg-surface rounded-3xl shadow-sm overflow-hidden border border-border/5">
               {lectures[subject.id] && lectures[subject.id].length > 0 ? (
-                <div className="divide-y divide-border/10">
-                  {lectures[subject.id].map((lecture) => (
-                    <Link 
-                      key={lecture.id}
-                      href={`/study/${lecture.id}`}
-                      className="flex items-center justify-between p-4 hover:bg-surface-active transition-colors group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-lg bg-surface-section flex items-center justify-center text-xs font-bold text-muted-foreground group-hover:bg-white group-hover:text-primary transition-colors">
-                          {lecture.order}
-                        </div>
-                        <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                          Lecture {lecture.order}
-                        </span>
+                <div className="divide-y divide-border/5">
+                  {lectures[subject.id].map((lecture) => {
+                    const isExpanded = expandedLectureId === lecture.id;
+
+                    return (
+                      <div key={lecture.id} className="flex flex-col">
+                        <button 
+                          onClick={() => setExpandedLectureId(isExpanded ? null : lecture.id)}
+                          className={`w-full flex items-center justify-between p-5 transition-all text-left group ${
+                            isExpanded ? "bg-primary/5" : "hover:bg-surface-active"
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${
+                              isExpanded ? "bg-primary text-white" : "bg-surface-section text-muted-foreground group-hover:bg-white group-hover:text-primary"
+                            }`}>
+                              {lecture.order}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className={`text-base font-bold transition-colors ${isExpanded ? "text-primary" : "text-foreground group-hover:text-primary"}`}>
+                                {lecture.title || `Lecture ${lecture.order}`}
+                              </span>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                                {(lecture.quizzes?.length || 0) + (lecture.questions ? 1 : 0)} Quizzes Available
+                              </span>
+                            </div>
+                          </div>
+                          {isExpanded ? <ChevronDown size={20} className="text-primary" /> : <ChevronRight size={20} className="text-muted-foreground group-hover:translate-x-1 transition-transform" />}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="bg-surface-section/30 p-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                            {/* Legacy Question Support */}
+                            {lecture.questions && lecture.questions.length > 0 && (
+                              <Link 
+                                href={`/quiz/${lecture.id}`}
+                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-white transition-all group/quiz"
+                              >
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                  <BookOpen size={16} />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-bold text-foreground group-hover/quiz:text-primary transition-colors">Standard Quiz</span>
+                                  <span className="text-[10px] font-bold text-muted-foreground/60">{lecture.questions.length} Questions</span>
+                                </div>
+                                <ArrowRight size={14} className="ml-auto text-muted-foreground/40 group-hover/quiz:text-primary group-hover/quiz:translate-x-1 transition-all" />
+                              </Link>
+                            )}
+
+                            {/* New Quizzes Support */}
+                            {lecture.quizzes?.map((quiz) => (
+                              <Link 
+                                key={quiz.id}
+                                href={`/quiz/${lecture.id}?quizId=${quiz.id}`}
+                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-white transition-all group/quiz"
+                              >
+                                <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
+                                  <Sparkles size={16} />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-bold text-foreground group-hover/quiz:text-secondary transition-colors">{quiz.title}</span>
+                                  <span className="text-[10px] font-bold text-muted-foreground/60">{quiz.questions.length} Questions</span>
+                                </div>
+                                <ArrowRight size={14} className="ml-auto text-muted-foreground/40 group-hover/quiz:text-secondary group-hover/quiz:translate-x-1 transition-all" />
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <ChevronRight size={16} className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                    </Link>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-8 text-center text-sm text-muted-foreground font-semibold italic">

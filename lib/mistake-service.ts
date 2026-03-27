@@ -55,13 +55,19 @@ export async function getUserMistakes(userId: string): Promise<MistakeWithConten
     // Map mistakes to their content
     const combined: MistakeWithContent[] = mistakes.map(m => {
       const lecture = lecturesMap[m.lectureId];
-      const question = lecture?.questions.find(q => q.id === m.questionId);
+      if (!lecture) return null;
+
+      // Find question in legacy questions array or in quizzes array
+      const question = 
+        lecture.questions?.find(q => q.id === m.questionId) || 
+        lecture.quizzes?.flatMap(q => q.questions).find(q => q.id === m.questionId);
+
       return {
         ...m,
         question,
-        lectureNumber: lecture?.order
-      };
-    }).filter(m => !!m.question); // Only return if question data exists
+        lectureNumber: lecture.order
+      } as MistakeWithContent;
+    }).filter((m): m is MistakeWithContent => !!m && !!m.question);
     
     return combined;
   } catch (err) {

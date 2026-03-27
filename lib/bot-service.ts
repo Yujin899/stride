@@ -85,9 +85,23 @@ export async function triggerBotCron(force = false) {
   const lecturesSnap = await adminDb.collection("lectures").where("subjectId", "==", subjectId).get();
   lecturesSnap.forEach(doc => {
     const lecture = doc.data();
+    
+    // Add Standard Quiz questions
     if (lecture.questions && Array.isArray(lecture.questions)) {
       lecture.questions.forEach((q: Question) => {
         questionPool.push({ q, source: lecture.title || `Lecture ${lecture.order}` });
+      });
+    }
+
+    // Add Nested Quizzes questions
+    if (lecture.quizzes && Array.isArray(lecture.quizzes)) {
+      lecture.quizzes.forEach((quiz: any) => {
+        if (quiz.questions && Array.isArray(quiz.questions)) {
+          quiz.questions.forEach((q: Question) => {
+            const quizSource = `${lecture.title || `Lecture ${lecture.order}`} (${quiz.title})`;
+            questionPool.push({ q, source: quizSource });
+          });
+        }
       });
     }
   });
@@ -130,7 +144,7 @@ export async function triggerBotCron(force = false) {
   }
 }
 
-export async function notifyNewLecture(lectureTitle: string, subjectId: string) {
+export async function notifyNewLecture(lectureTitle: string, subjectId: string, quizTitle?: string) {
   try {
     const config = await getBotConfig();
     if (!config || !config.chatId) return { success: false, error: "Bot not configured" };
@@ -139,10 +153,17 @@ export async function notifyNewLecture(lectureTitle: string, subjectId: string) 
     const subSnap = await adminDb.collection("subjects").doc(subjectId).get();
     const subjectName = subSnap.exists ? subSnap.data()?.name : "Unknown Subject";
 
-    const message = `📢 <b>NEW KNOWLEDGE UNLOCKED!</b>\n\n` +
-                   `📜 <b>Lecture:</b> ${lectureTitle}\n` +
-                   `🌿 <b>Subject:</b> ${subjectName}\n\n` +
-                   `<i>Check your Week Plan to start the quest!</i> ⚔️`;
+    let message = `📢 <b>NEW KNOWLEDGE UNLOCKED!</b>\n\n`;
+    
+    if (quizTitle) {
+      message += `🧩 <b>Part:</b> ${quizTitle}\n` +
+                 `📜 <b>Lecture:</b> ${lectureTitle}\n`;
+    } else {
+      message += `📜 <b>Lecture:</b> ${lectureTitle}\n`;
+    }
+
+    message += `🌿 <b>Subject:</b> ${subjectName}\n\n` +
+               `<i>Check your Study Library to start the quest!</i> ⚔️`;
 
     const res = await sendMessage(config.chatId, message);
     return { success: res.ok, error: res.description };

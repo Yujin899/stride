@@ -177,7 +177,9 @@ export default function SubjectLecturesManagement({ params }: { params: Promise<
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">Number #{item.order}</span>
                         <div className="h-1 w-1 rounded-full bg-border" />
-                        <span className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">{item.questions.length} Questions</span>
+                        <span className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">
+                          {(item.questions?.length || 0) + (item.quizzes?.reduce((acc, q) => acc + q.questions.length, 0) || 0)} Questions
+                        </span>
                       </div>
                    </div>
                 </div>

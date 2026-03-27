@@ -1,25 +1,27 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Comfortaa, Nunito } from "next/font/google";
-import { ChevronLeft, CheckCircle2, XCircle, Home, RefreshCcw, Loader2 } from "lucide-react";
+import { ChevronLeft, CheckCircle2, XCircle, Home, RefreshCcw, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { fetchQuiz, saveMistake } from "@/lib/quiz-service";
-import { addDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { useAuthStore } from "@/store/authStore";
-import { Lecture } from "@/types";
+import { Lecture, Quiz } from "@/types";
 
 const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
 
 export default function QuizPage() {
   const { lectureId } = useParams();
+  const searchParams = useSearchParams();
+  const quizId = searchParams.get("quizId");
   const router = useRouter();
   const { user } = useAuthStore();
 
   const [lecture, setLecture] = useState<Lecture | null>(null);
+  const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -35,7 +37,13 @@ export default function QuizPage() {
       if (!lectureId) return;
       try {
         const data = await fetchQuiz(lectureId as string);
-        if (data) setLecture(data);
+        if (data) {
+          setLecture(data);
+          if (quizId && data.quizzes) {
+            const found = data.quizzes.find(q => q.id === quizId);
+            if (found) setActiveQuiz(found);
+          }
+        }
       } catch (err) {
         console.error("Quiz init error:", err);
       } finally {
@@ -43,7 +51,7 @@ export default function QuizPage() {
       }
     }
     init();
-  }, [lectureId]);
+  }, [lectureId, quizId]);
 
   // 2. Scroll to top on question change
   useEffect(() => {
@@ -61,7 +69,7 @@ export default function QuizPage() {
     }
   }, [currentIndex]);
 
-  const questions = lecture?.questions || [];
+  const questions = activeQuiz ? activeQuiz.questions : (lecture?.questions || []);
   const currentQuestion = questions[currentIndex];
 
   const handleOptionClick = async (index: number) => {
@@ -91,23 +99,13 @@ export default function QuizPage() {
 
   // 4. Handle Completion Analysis
   const [isPassed, setIsPassed] = useState<boolean | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (isFinished && lecture && user) {
+    if (isFinished && questions.length > 0) {
       const percentage = (score / questions.length) * 100;
-      const passed = percentage >= 60;
-      setIsPassed(passed);
-
-      if (passed) {
-        setIsSaving(true);
-        import("@/lib/weekplan-service").then(({ completeQuest }) => {
-          completeQuest(user.id, lecture.id, Math.round(percentage))
-            .finally(() => setIsSaving(false));
-        });
-      }
+      setIsPassed(percentage >= 60);
     }
-  }, [isFinished, score, questions.length, lecture, user]);
+  }, [isFinished, score, questions.length]);
 
   if (loading) {
     return (
@@ -170,10 +168,9 @@ export default function QuizPage() {
               <>
                 <button 
                   onClick={() => router.push("/home")}
-                  disabled={isSaving}
                   className="btn-primary w-full py-4 text-sm tracking-widest uppercase flex items-center justify-center gap-2"
                 >
-                  {isSaving ? <Loader2 className="animate-spin" size={18} /> : <>Continue Home <Home size={18} /></>}
+                  Continue Home <Home size={18} />
                 </button>
                 <button 
                   onClick={() => router.push("/mistakes")}
@@ -216,14 +213,15 @@ export default function QuizPage() {
       {/* Navigation */}
       <div className="w-full max-w-3xl flex items-center justify-between mb-8">
         <Link 
-          href={`/study/${lectureId}`}
+          href="/study"
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground font-semibold transition-colors group"
         >
           <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           Back
         </Link>
-        <div className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-[0.2em] bg-white/50 px-3 py-1 rounded-full">
-          Boss Fight: Lecture {lecture.order}
+        <div className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-[0.2em] bg-white/50 px-3 py-1 rounded-full flex items-center gap-2">
+          {activeQuiz && <Sparkles size={12} className="text-secondary" />}
+          Boss Fight: {activeQuiz ? activeQuiz.title : `Lecture ${lecture.order}`}
         </div>
         <div className="hidden sm:block w-20" /> {/* Spacer */}
       </div>

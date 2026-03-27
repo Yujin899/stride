@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Pause, RotateCcw, Plus, Minus, Square, CheckCircle2, Home, Coffee } from "lucide-react";
+import { Play, Pause, RotateCcw, Plus, Minus, Square, CheckCircle2, Home, Coffee, BookOpen } from "lucide-react";
 import { comfortaa, nunito } from "@/lib/fonts";
 import { useRouter } from "next/navigation";
 import TimerDisplay from "./TimerDisplay";
@@ -293,13 +293,22 @@ export default function PomodoroTimer({
         {sessionCompleted && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-30 animate-in fade-in zoom-in duration-300 bg-[#FEFCF7]/95 backdrop-blur-md rounded-full">
             <div className="flex flex-col gap-3 w-52 scale-90">
-              {/* Button 1: Go to Quiz */}
-              <button
-                onClick={() => router.push(`/quiz/${lectureId || "latest"}`)}
-                className="bg-primary text-white px-5 py-4 rounded-2xl font-black shadow-lg hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
-              >
-                Go to Quiz <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
-              </button>
+              {/* Button 1: Go to Quiz / Back to Library */}
+              {lectureId ? (
+                <button
+                  onClick={() => router.push(`/quiz/${lectureId}`)}
+                  className="bg-primary text-white px-5 py-4 rounded-2xl font-black shadow-lg hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
+                >
+                  Go to Quiz <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => router.push("/study")}
+                  className="bg-primary text-white px-5 py-4 rounded-2xl font-black shadow-lg hover:translate-y-[-2px] active:translate-y-px transition-all flex items-center justify-center gap-3 group"
+                >
+                  Back to Library <BookOpen size={18} className="group-hover:scale-110 transition-transform" />
+                </button>
+              )}
 
               {/* Button 2: Dynamic Middle Button */}
               {mode === "work" && !isManualEnd ? (

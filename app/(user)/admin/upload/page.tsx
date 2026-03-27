@@ -7,9 +7,10 @@ import {
   fetchAllSubjects,
   createSubject,
   getNextLectureOrder,
-  uploadLecture
+  uploadLecture,
+  fetchLecturesBySubject
 } from "@/lib/admin-service";
-import { Subject } from "@/types";
+import { Subject, Lecture, Question } from "@/types";
 import {
   Plus,
   Sparkles,
@@ -19,7 +20,8 @@ import {
   Loader2,
   ChevronRight,
   Search,
-  Database
+  Database,
+  ArrowRight
 } from "lucide-react";
 import Link from "next/link";
 
@@ -36,11 +38,14 @@ export default function AdminUploadPage() {
 
   // Form State - Step 1
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
+  const [existingLectures, setExistingLectures] = useState<Lecture[]>([]);
+  const [selectedLectureId, setSelectedLectureId] = useState("new"); // "new" or lecture.id
   const [nextOrder, setNextOrder] = useState<number | null>(null);
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState("");
 
-  // Form State - Step 2
+  // Form State - Step 2 (Prompt)
+  const [quizTitle, setQuizTitle] = useState("");
   const [notebookLMText, setNotebookLMText] = useState("");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [isCopied, setIsCopied] = useState(false);
@@ -150,19 +155,39 @@ ${notebookLMText}`;
   };
 
   const handleFinalSubmit = async () => {
-    if (!selectedSubjectId || !nextOrder || !isValidated) return;
+    if (!selectedSubjectId || nextOrder === null || !isValidated) return;
     setIsSubmitting(true);
     try {
       const questions = JSON.parse(jsonText);
-      const autoTitle = `Lecture ${numberToWord(nextOrder)}`;
-      await uploadLecture(selectedSubjectId, nextOrder, true, questions, autoTitle);
+      
+      let targetOrder = nextOrder;
+      let finalLectureTitle = `Lecture ${numberToWord(nextOrder)}`;
+      
+      if (selectedLectureId !== "new") {
+        const existing = existingLectures.find(l => l.id === selectedLectureId);
+        if (existing) {
+          targetOrder = existing.order;
+          finalLectureTitle = existing.title || `Lecture ${numberToWord(targetOrder)}`;
+        }
+      }
+
+      const finalQuizTitle = quizTitle.trim() || `Part ${numberToWord(
+        (existingLectures.find(l => l.id === selectedLectureId)?.quizzes?.length || 0) + 1
+      )}`;
+
+      const autoTitle = finalLectureTitle;
+      await uploadLecture(selectedSubjectId, targetOrder, true, questions, autoTitle, finalQuizTitle);
 
       // Notify Telegram Bot
       try {
         fetch("/api/bot/notify-lecture", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lectureTitle: autoTitle, subjectId: selectedSubjectId }),
+          body: JSON.stringify({ 
+            lectureTitle: autoTitle, 
+            subjectId: selectedSubjectId,
+            quizTitle: finalQuizTitle 
+          }),
         });
       } catch (_err) {
         console.error("Telegram notification failed silently.");
@@ -172,11 +197,14 @@ ${notebookLMText}`;
       setNotebookLMText("");
       setGeneratedPrompt("");
       setJsonText("");
+      setQuizTitle("");
       setIsValidated(false);
-      alert(`${autoTitle} forged successfully! 🌿🍅`);
+      setSelectedLectureId("new");
+      alert(`${autoTitle}: ${finalQuizTitle} forged successfully! 🌿🍅`);
 
-      // Refresh order
+      // Refresh data
       getNextLectureOrder(selectedSubjectId).then(setNextOrder);
+      fetchLecturesBySubject(selectedSubjectId).then(setExistingLectures);
     } catch (err) {
       console.error("Final upload error:", err);
     } finally {
@@ -269,10 +297,43 @@ ${notebookLMText}`;
               )}
             </div>
 
-            {selectedSubjectId && nextOrder !== null && (
-              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
-                <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Next Lecture Number</span>
-                <span className="text-lg font-black text-primary">#{nextOrder} ({numberToWord(nextOrder)})</span>
+            {selectedSubjectId && (
+              <div className="space-y-2 animate-in slide-in-from-top-2">
+                <label className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 pl-2">Lecture Selection</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setSelectedLectureId("new")}
+                    className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                      selectedLectureId === "new" 
+                        ? "border-primary bg-primary/5 shadow-sm" 
+                        : "border-border/50 bg-surface-section hover:border-border"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-[10px] font-black uppercase tracking-widest ${selectedLectureId === "new" ? "text-primary" : "text-muted-foreground"}`}>New Entry</span>
+                      {selectedLectureId === "new" && <Check size={14} className="text-primary" />}
+                    </div>
+                    <p className="text-sm font-bold text-foreground">Lecture #{nextOrder}</p>
+                  </button>
+
+                  {existingLectures.map(l => (
+                    <button
+                      key={l.id}
+                      onClick={() => setSelectedLectureId(l.id)}
+                      className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                        selectedLectureId === l.id 
+                          ? "border-primary bg-primary/5 shadow-sm" 
+                          : "border-border/50 bg-surface-section hover:border-border"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${selectedLectureId === l.id ? "text-primary" : "text-muted-foreground"}`}>Append To</span>
+                        {selectedLectureId === l.id && <Check size={14} className="text-primary" />}
+                      </div>
+                      <p className="text-sm font-bold text-foreground truncate">{l.title || `Lecture ${l.order}`}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -393,9 +454,27 @@ Return the output as structured plain text with clear headers. Be exhaustive —
           </div>
 
           <div className="space-y-4">
-            <div className="p-4 bg-secondary/5 rounded-2xl border border-secondary/10">
-              <span className="text-xs font-bold text-secondary/70 uppercase tracking-widest block mb-1">Target Title</span>
-              <span className="text-lg font-black text-secondary">Lecture {nextOrder ? numberToWord(nextOrder) : '...'}</span>
+            <div className="p-4 bg-secondary/5 rounded-2xl border border-secondary/10 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-secondary/70 uppercase tracking-widest block mb-1">Target Lecture</span>
+                <span className="text-lg font-black text-secondary">
+                  {selectedLectureId === "new" 
+                    ? `Lecture ${nextOrder ? numberToWord(nextOrder) : '...'}`
+                    : existingLectures.find(l => l.id === selectedLectureId)?.title || `Lecture ${existingLectures.find(l => l.id === selectedLectureId)?.order}`
+                  }
+                </span>
+              </div>
+              
+              <div className="pt-2 border-t border-secondary/10">
+                <label className="text-[10px] font-black uppercase tracking-widest text-secondary/60 pl-1 block mb-2">Quiz Title (Optional)</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Case Studies, Final Review..."
+                  value={quizTitle}
+                  onChange={(e) => setQuizTitle(e.target.value)}
+                  className="w-full bg-white rounded-xl px-4 py-2 text-sm font-bold text-secondary outline-none border border-secondary/10 focus:ring-2 ring-secondary/10 transition-all"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

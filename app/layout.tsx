@@ -5,17 +5,10 @@ import "./globals.css";
 import AuthInitializer from "@/components/auth/AuthInitializer";
 import AmbiancePlayer from "@/components/audio/AmbiancePlayer";
 import GlobalClickSound from "@/components/audio/GlobalClickSound";
-import PWAInstallPrompt from "@/components/layout/PWAInstallPrompt";
 
 export const metadata: Metadata = {
   title: "Stride — Woodland Quest",
   description: "A gamified study manager for dental students.",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Stride",
-  },
   formatDetection: {
     telephone: false,
   },
@@ -39,7 +32,6 @@ export default function RootLayout({
         <AuthInitializer>
           <AmbiancePlayer />
           <GlobalClickSound />
-          <PWAInstallPrompt />
           {children}
         </AuthInitializer>
       </body>

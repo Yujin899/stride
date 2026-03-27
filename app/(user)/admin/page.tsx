@@ -12,7 +12,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Loader2,
-  Database
+  Database,
+  Sparkles
 } from "lucide-react";
 import { comfortaa, nunito } from "@/lib/fonts";
 import Link from "next/link";
@@ -57,11 +58,19 @@ export default function AdminDashboard() {
   const adminCards = [
     {
       title: "Lecture Forge",
-      desc: "Create and upload new lectures via AI-assisted prompts.",
+      desc: "Create and upload brand new lectures with AI assistance.",
       icon: <PlusCircle size={32} />,
       link: "/admin/upload",
       color: "from-amber-500 to-orange-600",
       badge: "Builder"
+    },
+    {
+      title: "Quiz Expansion",
+      desc: "Add new quiz parts to existing lectures and notify users.",
+      icon: <Sparkles size={32} />,
+      link: "/admin/upload-quiz",
+      color: "from-orange-400 to-amber-500",
+      badge: "Expander"
     },
     {
       title: "Subject Realm",
@@ -105,7 +114,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {adminCards.map((card, idx) => (
           <Link key={idx} href={card.link} className="group outline-none">
             <div className="wooden-panel h-full p-8 space-y-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl relative overflow-hidden">

@@ -3,8 +3,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { getUserMistakes, markMistakeAsReviewed, MistakeWithContent } from "@/lib/mistake-service";
-import { getSubjects, getOrCreateWeekPlan } from "@/lib/weekplan-service";
-import { Subject, DayPlan } from "@/types";
+import { getSubjects } from "@/lib/weekplan-service";
+import { Subject } from "@/types";
 import { Comfortaa, Nunito } from "next/font/google";
 import { Check, X, Loader2, Filter, Info } from "lucide-react";
 
@@ -26,6 +26,8 @@ export default function MistakesPage() {
           getUserMistakes(user.id),
           getSubjects()
         ]);
+        setMistakes(mistakeData);
+        setSubjects(subjectData);
       } catch (err) {
         console.error("Mistakes load error:", err);
       } finally {

@@ -1,19 +1,13 @@
 import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
   getDocs,
   query,
   orderBy,
   where,
   addDoc,
   serverTimestamp,
-  Timestamp
 } from "firebase/firestore";
-import { startOfWeek, addDays, getISOWeek, getYear } from "date-fns";
-import { WeekPlan, Subject, DayPlan, Lecture, StudySession } from "@/types";
-import { weekPlansCol, subjectsCol, lecturesCol, sessionsCol, toDate } from "./firebase/collections";
+import { Subject, Lecture, StudySession } from "@/types";
+import { subjectsCol, lecturesCol, sessionsCol, toDate } from "./firebase/collections";
 
 /**
  * Saves a completed study session to history
@@ -56,100 +50,6 @@ export const getAllSessions = async (): Promise<StudySession[]> => {
 };
 
 /**
- * Generates the standardized week ID: userId_week_year
- */
-export const getWeekId = (userId: string, date: Date) => {
-  const weekNum = getISOWeek(date);
-  const year = getYear(date);
-  return `${userId}_${weekNum}_${year}`;
-};
-
-/**
- * Fetches or creates a week plan document
- */
-export const getOrCreateWeekPlan = async (userId: string, date: Date): Promise<WeekPlan> => {
-  const weekId = getWeekId(userId, date);
-  const docRef = doc(weekPlansCol, weekId);
-  const docSnap = await getDoc(docRef);
-
-  if (docSnap.exists()) {
-    const plan = docSnap.data() as WeekPlan;
-    
-    // Rollover Logic: Move unfinished quests from previous days of the SAME week to today
-    const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-    const todayDate = new Date();
-    // Only rollover if we're looking at the CURRENT week
-    const currentWeekId = getWeekId(userId, todayDate);
-    
-    if (weekId === currentWeekId) {
-      const todayIndex = (todayDate.getDay() + 6) % 7; // Monday=0, Sunday=6
-      const todayName = dayNames[todayIndex] as keyof typeof plan.days;
-      
-      let hasChanges = false;
-      const movedQuests: DayPlan[] = [];
-
-      for (let i = 0; i < todayIndex; i++) {
-        const dayName = dayNames[i] as keyof typeof plan.days;
-        const quests = Array.isArray(plan.days[dayName]) ? plan.days[dayName] : [];
-        
-        const unfinished = quests.filter(q => q.status !== 'done');
-        if (unfinished.length > 0) {
-          movedQuests.push(...unfinished.map(q => ({ ...q, id: q.id || crypto.randomUUID() })));
-          plan.days[dayName] = quests.filter(q => q.status === 'done');
-          hasChanges = true;
-        }
-      }
-
-      if (hasChanges && movedQuests.length > 0) {
-        const todayQuests = Array.isArray(plan.days[todayName]) ? plan.days[todayName] : [];
-        plan.days[todayName] = [...todayQuests, ...movedQuests];
-        await updateDoc(docRef, { days: plan.days });
-      }
-    }
-
-    return plan;
-  }
-
-  // Create new empty week plan
-  const start = startOfWeek(date, { weekStartsOn: 1 }); // Monday
-  const newPlan: Partial<WeekPlan> = {
-    userId,
-    weekNumber: getISOWeek(date),
-    year: getYear(date),
-    startDate: start,
-    days: {
-      monday: [],
-      tuesday: [],
-      wednesday: [],
-      thursday: [],
-      friday: [],
-      saturday: [],
-      sunday: [],
-    }
-  };
-
-  await setDoc(docRef, newPlan);
-  return { id: weekId, ...newPlan } as WeekPlan;
-};
-
-/**
- * Updates a specific day's plan array
- */
-export const updateDayPlansArr = async (
-  userId: string, 
-  date: Date, 
-  dayName: string, 
-  plansArr: DayPlan[]
-) => {
-  const weekId = getWeekId(userId, date);
-  const docRef = doc(weekPlansCol, weekId);
-  
-  await updateDoc(docRef, {
-    [`days.${dayName.toLowerCase()}`]: plansArr
-  });
-};
-
-/**
  * Fetches real lectures for a given subject
  */
 export const getLecturesBySubject = async (subjectId: string): Promise<Lecture[]> => {
@@ -168,46 +68,4 @@ export const getSubjects = async (): Promise<Subject[]> => {
   const q = query(subjectsCol, orderBy("name"));
   const snap = await getDocs(q);
   return snap.docs.map(doc => doc.data() as Subject);
-};
-
-/**
- * Gets the list of dates for a given week starting from a date
- */
-export const getWeekDates = (date: Date) => {
-  const start = startOfWeek(date, { weekStartsOn: 1 });
-  return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
-};
-
-/**
- * Marks a quest as complete if it exists in the current week's plan
- */
-export const completeQuest = async (userId: string, lectureId: string, score: number) => {
-  const now = new Date();
-  const weekId = getWeekId(userId, now);
-  const docRef = doc(weekPlansCol, weekId);
-  const docSnap = await getDoc(docRef);
-
-  if (!docSnap.exists()) return;
-
-  const data = docSnap.data() as WeekPlan;
-  const days = data.days as Record<string, DayPlan[]>;
-  let found = false;
-
-  // Search through each day to find the matching lectureId
-  for (const day of Object.keys(days)) {
-    const plans = days[day];
-    const planIndex = plans.findIndex(p => p.lectureId === lectureId && p.status !== "done");
-
-    if (planIndex !== -1) {
-      plans[planIndex].status = "done";
-      plans[planIndex].score = score;
-      plans[planIndex].completedAt = Timestamp.now();
-      found = true;
-      break; 
-    }
-  }
-
-  if (found) {
-    await updateDoc(docRef, { days });
-  }
 };

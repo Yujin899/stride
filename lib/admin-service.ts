@@ -13,7 +13,7 @@ import {
   doc
 } from "firebase/firestore";
 import { db } from "./firebase/config";
-import { Subject, Lecture } from "@/types";
+import { Subject, Lecture, Question } from "@/types";
 
 /**
  * Fetch all available subjects for selection
@@ -83,25 +83,52 @@ export async function uploadLecture(
   subjectId: string, 
   order: number, 
   isLocked: boolean, 
-  questions: any[], 
-  title: string
+  questions: Question[], 
+  lectureTitle: string,
+  quizTitle: string = "Standard Quiz"
 ): Promise<string> {
   try {
-    const newLecture: Partial<Lecture> = {
-      subjectId,
-      order,
-      isLocked,
+    // Check if a lecture with this order already exists for the subject
+    const q = query(
+      collection(db, "lectures"), 
+      where("subjectId", "==", subjectId),
+      where("order", "==", order)
+    );
+    const snap = await getDocs(q);
+    
+    const newQuiz = {
+      id: crypto.randomUUID(),
+      title: quizTitle,
       questions,
-      createdAt: serverTimestamp() as unknown as Timestamp,
+      createdAt: serverTimestamp() as any
     };
-    
-    // Using typed save. (Title is added ad-hoc as per requirement)
-    const docRef = await addDoc(collection(db, "lectures"), {
-      ...newLecture,
-      title
-    });
-    
-    return docRef.id;
+
+    if (!snap.empty) {
+      // Append to existing lecture
+      const docId = snap.docs[0].id;
+      const existingData = snap.docs[0].data() as Lecture;
+      const quizzes = existingData.quizzes || [];
+      
+      // If legacy questions exist, move them to quizzes too? 
+      // For now, just prepend/append the new one.
+      await updateDoc(doc(db, "lectures", docId), {
+        quizzes: [...quizzes, newQuiz]
+      });
+      return docId;
+    } else {
+      // Create new lecture
+      const newLecture: Partial<Lecture> = {
+        subjectId,
+        order,
+        isLocked,
+        title: lectureTitle,
+        quizzes: [newQuiz],
+        createdAt: serverTimestamp() as unknown as Timestamp,
+      };
+      
+      const docRef = await addDoc(collection(db, "lectures"), newLecture);
+      return docRef.id;
+    }
   } catch (err) {
     console.error("Error uploading lecture:", err);
     throw err;

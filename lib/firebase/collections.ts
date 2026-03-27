@@ -11,7 +11,6 @@ import {
   User, 
   Subject, 
   Lecture, 
-  WeekPlan, 
   QuizAttempt, 
   Mistake,
   StudySession,
@@ -57,7 +56,6 @@ export const toDate = (timestamp: unknown): Date | null => {
 export const usersCol = collection(db, "users").withConverter(genericConverter<User>());
 export const subjectsCol = collection(db, "subjects").withConverter(genericConverter<Subject>());
 export const lecturesCol = collection(db, "lectures").withConverter(genericConverter<Lecture>());
-export const weekPlansCol = collection(db, "weekPlan").withConverter(genericConverter<WeekPlan>());
 export const quizAttemptsCol = collection(db, "quizAttempts").withConverter(genericConverter<QuizAttempt>());
 export const mistakesCol = collection(db, "mistakes").withConverter(genericConverter<Mistake>());
 export const sessionsCol = collection(db, "sessions").withConverter(genericConverter<StudySession>());

@@ -2,34 +2,37 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { 
-  getOrCreateWeekPlan, 
-  getSubjects, 
-  updateDayPlansArr 
-} from "@/lib/weekplan-service";
-import { WeekPlan, Subject, DayPlan } from "@/types";
+import { StudySession } from "@/types";
 import { Timestamp } from "firebase/firestore";
-import TodayQuest from "@/components/home/TodayQuest";
-import AssignModal from "@/components/home/AssignModal";
 import FocusBlooms from "@/components/home/FocusBlooms";
 import { getUserSessions } from "@/lib/weekplan-service";
-import { StudySession } from "@/types";
-import { ChevronRight, Loader2, AlertCircle, History as HistoryIcon, LayoutDashboard, Trophy } from "lucide-react";
+import { getLeaderboard, LeaderboardEntry } from "@/lib/user-service";
+import { 
+  ChevronRight, 
+  Loader2, 
+  AlertCircle, 
+  History as HistoryIcon, 
+  LayoutDashboard, 
+  Trophy,
+  Medal,
+  Target,
+  Zap,
+  Waves,
+  Timer
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import Image from "next/image";
+import { comfortaa, nunito } from "@/lib/fonts";
 
 export default function HomePage() {
   const { user } = useAuthStore();
   const router = useRouter();
   
   // State
-  const [weekPlan, setWeekPlan] = useState<WeekPlan | null>(null);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [todaySessions, setTodaySessions] = useState<StudySession[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [activeAssignDay, setActiveAssignDay] = useState<{date: Date, name: string} | null>(null);
-  const [editingPlan, setEditingPlan] = useState<DayPlan | null>(null);
 
   // Load Initial Data
   useEffect(() => {
@@ -41,25 +44,22 @@ export default function HomePage() {
       
       setIsLoading(true);
       try {
-        const [plan, subjs, sessions] = await Promise.all([
-          getOrCreateWeekPlan(user.id, new Date()),
-          getSubjects(),
-          getUserSessions(user.id)
+        const [sessions, leaderboardData] = await Promise.all([
+          getUserSessions(user.id),
+          getLeaderboard()
         ]);
-        setWeekPlan(plan);
-        setSubjects(subjs);
         
         // Filter sessions for today
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const todayStr = format(new Date(), "yyyy-MM-dd");
         const filtered = sessions.filter(s => {
           if (!s.completedAt) return false;
-          // Robust check for Firebase Timestamp or JS Date
           const completedAt = s.completedAt as Timestamp | Date;
           const d = (completedAt as Timestamp).toDate ? (completedAt as Timestamp).toDate() : completedAt as Date;
-          const sDate = format(d, 'yyyy-MM-dd');
-          return sDate === todayStr && s.type === 'work';
+          const sDate = format(d, "yyyy-MM-dd");
+          return sDate === todayStr && s.type === "work";
         });
         setTodaySessions(filtered);
+        setLeaderboard(leaderboardData);
       } catch (err: unknown) {
         console.error("HomePage initialization error:", err);
       } finally {
@@ -69,104 +69,7 @@ export default function HomePage() {
     init();
   }, [user?.id]);
 
-
-  // Handle Assignment
-  const handleOpenAssign = (date: Date, dayName: string, plan: DayPlan | null = null) => {
-    setActiveAssignDay({ date, name: dayName });
-    setEditingPlan(plan);
-    setIsAssignModalOpen(true);
-  };
-
-  const handleAssignSubmit = async (plan: DayPlan) => {
-    if (!user?.id || !activeAssignDay || !weekPlan) return;
-
-    const dayName = activeAssignDay.name.toLowerCase();
-    const currentDayPlans = getDayPlans(dayName);
-    
-    let updatedPlans: DayPlan[];
-    if (editingPlan) {
-      // Update existing
-      updatedPlans = currentDayPlans.map(p => p.id === plan.id ? plan : p);
-    } else {
-      // Add new
-      updatedPlans = [...currentDayPlans, plan];
-    }
-
-    try {
-      await updateDayPlansArr(user.id, new Date(), dayName, updatedPlans);
-      // Local update
-      setWeekPlan({
-        ...weekPlan,
-        days: { ...weekPlan.days, [dayName]: updatedPlans }
-      });
-      setIsAssignModalOpen(false);
-      setEditingPlan(null);
-    } catch (err) {
-      console.error("Assignment error:", err);
-    }
-  };
-
-  const handleDeleteQuest = async (dayName: string, planId: string) => {
-    if (!user?.id || !weekPlan) return;
-    
-    const day = dayName.toLowerCase();
-    const updatedPlans = getDayPlans(day).filter(p => p.id !== planId);
-
-    try {
-      await updateDayPlansArr(user.id, new Date(), day, updatedPlans);
-      setWeekPlan({
-        ...weekPlan,
-        days: { ...weekPlan.days, [day]: updatedPlans }
-      });
-    } catch (err) {
-      console.error("Delete quest error:", err);
-    }
-  };
-
-  // Helper for Data Migration & Access
-  const getDayPlans = (dayName: string): DayPlan[] => {
-    if (!weekPlan) return [];
-    const days = weekPlan.days as Record<string, DayPlan[] | DayPlan>;
-    const dayData = days[dayName.toLowerCase()];
-    if (Array.isArray(dayData)) return dayData;
-    // Migration: If it's a single object (old format), wrap in array
-    if (dayData && (dayData as DayPlan).status !== 'empty') {
-       return [{ ...dayData as DayPlan, id: (dayData as DayPlan).id || crypto.randomUUID() }];
-    }
-    return [];
-  };
-
-  // Get Today's Plans
-  const getTodayPlans = () => {
-    if (!weekPlan) return [];
-    const todayName = format(new Date(), 'eeee').toLowerCase();
-    return getDayPlans(todayName);
-  };
-
-  // Calculate Weekly Progress
-  const getWeeklyProgress = () => {
-    if (!weekPlan) return { total: 0, done: 0, percent: 0 };
-    let total = 0;
-    let done = 0;
-    
-    Object.values(weekPlan.days).forEach((dayPlans: DayPlan[] | DayPlan) => {
-      const plans = Array.isArray(dayPlans) ? dayPlans : (dayPlans.status !== 'empty' ? [dayPlans as DayPlan] : []);
-      plans.forEach(p => {
-        total++;
-        if (p.status === "done") done++;
-      });
-    });
-
-    return {
-      total,
-      done,
-      percent: total > 0 ? Math.round((done / total) * 100) : 0
-    };
-  };
-
-  const weeklyStats = getWeeklyProgress();
-
-  if (isLoading && !weekPlan) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-20 space-y-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -176,7 +79,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="relative space-y-8 pb-24 animate-in fade-in duration-1000">
+    <div className={`relative space-y-12 pb-24 animate-in fade-in duration-1000 ${nunito.className}`}>
       {/* Visual Identity Layer */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-linear-to-b from-primary/5 to-transparent -z-10 rounded-full blur-3xl" />
 
@@ -187,7 +90,7 @@ export default function HomePage() {
             Howdy, Scholar! 🌿
           </h1>
           <p className="text-sm font-bold text-muted-foreground/60 uppercase tracking-widest">
-            {format(new Date(), 'EEEE, MMMM do')}
+            {format(new Date(), "EEEE, MMMM do")}
           </p>
         </div>
 
@@ -195,36 +98,30 @@ export default function HomePage() {
         <FocusBlooms sessions={todaySessions} />
       </div>
 
-      {/* Weekly Progress Meter */}
-      <div className="px-2 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Weekly Mastery Progress</h3>
-            <span className="text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{weeklyStats.percent}%</span>
-          </div>
-          <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{weeklyStats.done} of {weeklyStats.total} Quests Secured</span>
-        </div>
-        <div className="h-2 w-full bg-surface-active rounded-full overflow-hidden border border-border/5">
-          <div 
-            className="h-full bg-linear-to-r from-primary to-secondary transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(212,184,122,0.3)]"
-            style={{ width: `${weeklyStats.percent}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Quick Exploration - MOVED TO TOP */}
+      {/* Quick Exploration */}
       <div className="space-y-4 px-2">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Quick Exploration</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <button 
             onClick={() => router.push("/study")}
             className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-primary/5!"
           >
             <div>
-              <h4 className="font-black text-primary group-hover:underline uppercase tracking-tighter text-sm">Study Hall</h4>
+              <h4 className="font-black text-primary group-hover:underline uppercase tracking-tighter text-sm">Study Library</h4>
               <p className="text-[10px] font-bold text-muted-foreground">Continue learning</p>
             </div>
             <ChevronRight size={18} className="text-primary/40 group-hover:text-primary transition-colors" />
+          </button>
+
+          <button 
+            onClick={() => router.push("/pomodoro")}
+            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-secondary/5!"
+          >
+            <div>
+              <h4 className="font-black text-secondary group-hover:underline uppercase tracking-tighter text-sm">Focus Timer</h4>
+              <p className="text-[10px] font-bold text-muted-foreground">Start a session</p>
+            </div>
+            <Timer size={18} className="text-secondary/40 group-hover:text-secondary transition-colors" />
           </button>
 
           <button 
@@ -249,73 +146,121 @@ export default function HomePage() {
             <HistoryIcon size={18} className="text-(--text)/40 group-hover:text-(--text) transition-colors" />
           </button>
 
-          <button 
-            onClick={() => router.push("/admin")}
-            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-blue-500/5!"
-          >
-            <div>
-              <h4 className="font-black text-blue-600 group-hover:underline uppercase tracking-tighter text-sm">Admin Portal</h4>
-              <p className="text-[10px] font-bold text-muted-foreground">Manage content</p>
-            </div>
-            <LayoutDashboard size={18} className="text-blue-500/40 group-hover:text-blue-600 transition-colors" />
-          </button>
-
-          <button 
-            onClick={() => router.push("/league")}
-            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-yellow-500/5!"
-          >
-            <div>
-              <h4 className="font-black text-yellow-600 group-hover:underline uppercase tracking-tighter text-sm">Stride League</h4>
-              <p className="text-[10px] font-bold text-muted-foreground">Climb the ranks</p>
-            </div>
-            <Trophy size={18} className="text-yellow-500/40 group-hover:text-yellow-600 transition-colors" />
-          </button>
-
-          <button 
-            onClick={() => router.push("/week-plan")}
-            className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-emerald-500/5!"
-          >
-            <div>
-              <h4 className="font-black text-emerald-600 group-hover:underline uppercase tracking-tighter text-sm">Week Scroll</h4>
-              <p className="text-[10px] font-bold text-muted-foreground">The full journey</p>
-            </div>
-            <HistoryIcon size={18} className="text-emerald-500/40 group-hover:text-emerald-600 transition-colors" />
-          </button>
+          {user?.role === "admin" && (
+            <button 
+              onClick={() => router.push("/admin")}
+              className="wooden-panel p-5! text-left hover:translate-y-[-2px] hover:shadow-lg active:translate-y-px active:shadow-sm transition-all group flex items-center justify-between bg-blue-500/5!"
+            >
+              <div>
+                <h4 className="font-black text-blue-600 group-hover:underline uppercase tracking-tighter text-sm">Admin Portal</h4>
+                <p className="text-[10px] font-bold text-muted-foreground">Manage content</p>
+              </div>
+              <LayoutDashboard size={18} className="text-blue-500/40 group-hover:text-blue-600 transition-colors" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Content Area: Today's Quests */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-2">
-          <h2 className="text-xl font-black text-foreground flex items-center gap-2">
-            Today&apos;s Scroll <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-tighter">Current Quests</span>
-          </h2>
-          <button 
-            onClick={() => handleOpenAssign(new Date(), format(new Date(), 'eeee'))}
-            className="text-xs font-black text-primary hover:underline hover:scale-105 transition-transform"
-          >
-            + Add Task
-          </button>
+      {/* Stride League Standings */}
+      <section className="space-y-6 px-2 animate-in slide-in-from-bottom-4 duration-700">
+        <div className="flex items-center justify-between">
+           <div className="space-y-1">
+             <h3 className="text-2xl font-black text-foreground tracking-tight">Stride League 🏆</h3>
+             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Global Scholarly Rankings</p>
+           </div>
+           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 text-secondary text-[10px] font-black uppercase tracking-widest">
+              Resets Monday
+           </div>
         </div>
 
-        <TodayQuest 
-          plans={getTodayPlans()}
-          onStart={(plan) => router.push(`/study/${plan.lectureId}`)}
-          onEdit={(plan) => handleOpenAssign(new Date(), format(new Date(), 'eeee').toLowerCase(), plan)}
-          onDelete={(plan) => handleDeleteQuest(format(new Date(), 'eeee'), plan.id)}
-          onAssign={() => handleOpenAssign(new Date(), format(new Date(), 'eeee').toLowerCase())}
-        />
+        <div className="wooden-panel p-0! overflow-hidden border-2 border-border/10 shadow-warm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-active/30 border-b border-border/10">
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center w-16">Rank</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Scholar</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center">XP</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-right">Streak</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/5">
+                {leaderboard.slice(0, 5).map((entry, index) => {
+                  const isCurrentUser = entry.userId === user?.id;
+                  const rank = index + 1;
+
+                  return (
+                   <tr 
+                     key={entry.userId} 
+                     className={`group transition-all hover:bg-primary/5 ${isCurrentUser ? "bg-primary/5" : ""}`}
+                   >
+                     <td className="px-4 py-4">
+                       <div className="flex items-center justify-center">
+                         {rank === 1 ? (
+                           <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center text-white shadow-sm">
+                              <Trophy size={12} />
+                           </div>
+                         ) : rank === 2 ? (
+                           <div className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-white shadow-sm">
+                              <Medal size={12} />
+                           </div>
+                         ) : rank === 3 ? (
+                           <div className="w-6 h-6 rounded-full bg-orange-400 flex items-center justify-center text-white shadow-sm">
+                              <Medal size={12} />
+                           </div>
+                         ) : (
+                           <span className="text-xs font-black text-muted-foreground/40">{rank}</span>
+                         )}
+                       </div>
+                     </td>
+                     <td className="px-4 py-4">
+                       <div className="flex items-center gap-3">
+                         <div className="relative w-8 h-8 rounded-full bg-surface border-2 border-border/10 overflow-hidden flex-shrink-0">
+                           <Image src="/tomato.png" alt="Avatar" fill className="object-cover p-1" />
+                         </div>
+                         <p className={`text-sm font-bold truncate ${isCurrentUser ? "text-primary" : "text-foreground"}`}>
+                           {entry.name}
+                         </p>
+                       </div>
+                     </td>
+                     <td className="px-4 py-4">
+                        <div className="flex items-center justify-center gap-1 text-orange-500 font-black text-sm">
+                          <Zap size={12} fill="currentColor" />
+                          {entry.totalXp}
+                        </div>
+                     </td>
+                     <td className="px-4 py-4 text-right">
+                       <span className="text-[10px] font-black text-tomato bg-tomato/10 px-2 py-1 rounded-full uppercase">
+                         {entry.streak} 🍅
+                       </span>
+                     </td>
+                   </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {leaderboard.length > 5 && (
+            <div className="p-4 bg-surface-active/10 border-t border-border/5 text-center">
+               <p className="text-[10px] font-bold text-muted-foreground italic tracking-widest uppercase">
+                 And {leaderboard.length - 5} more competing in the arena...
+               </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Footer Insight */}
+      <div className="px-2 pt-8">
+        <div className="wooden-panel p-6! bg-surface-active/30 text-center border-border/5">
+           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center justify-center gap-3">
+             <Waves size={14} className="animate-pulse" />
+             Stride League: Resets Monday at Midnight
+             <Waves size={14} className="animate-pulse" />
+           </p>
+        </div>
       </div>
-
-
-      {/* Assignment Modal */}
-      <AssignModal 
-        isOpen={isAssignModalOpen}
-        onClose={() => { setIsAssignModalOpen(false); setEditingPlan(null); }}
-        subjects={subjects}
-        onAssign={handleAssignSubmit}
-        editingPlan={editingPlan}
-      />
     </div>
   );
 }
+

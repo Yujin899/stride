@@ -37,6 +37,7 @@ export default function Sidebar({ user, role, streak }: SidebarProps) {
 
   const navLinks = [
     { name: "Home", href: "/home", image: "/home.png", icon: <Home size={20} /> },
+    { name: "Pomodoro", href: "/pomodoro", image: "/tomato.png" },
     { name: "Study", href: "/study", image: "/study.png", icon: <BookOpen size={20} /> },
     { name: "Mistakes", href: "/mistakes", image: "/mistakes.png", icon: <AlertCircle size={20} /> },
     { name: "History", href: "/history", image: "/history.png", icon: <History size={20} /> },

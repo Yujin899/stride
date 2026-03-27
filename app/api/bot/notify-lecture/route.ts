@@ -19,13 +19,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { lectureTitle, subjectId } = await req.json();
+    const { lectureTitle, subjectId, quizTitle } = await req.json();
     
     if (!lectureTitle || !subjectId) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
-    const result = await notifyNewLecture(lectureTitle, subjectId);
+    const result = await notifyNewLecture(lectureTitle, subjectId, quizTitle);
     return NextResponse.json(result);
   } catch (err) {
     console.error("Notify API Error:", err);
