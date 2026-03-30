@@ -1,6 +1,73 @@
-import { doc, getDoc, getDocs, query, where, limit, setDoc, updateDoc, collection, Timestamp, increment } from "firebase/firestore";
+import { doc, getDoc, getDocs, query, where, limit, setDoc, updateDoc, collection, Timestamp, increment, addDoc } from "firebase/firestore";
 import { db } from "./firebase/config";
-import { Lecture, Mistake } from "@/types";
+import { Lecture, Mistake, QuizAttempt, QuizAnswer } from "@/types";
+import { quizAttemptsCol } from "./firebase/collections";
+
+/**
+ * Calculates XP based on the streak rule:
+ * - 10 XP per correct answer.
+ * - After a 5-question streak (within the quiz), XP is doubled (20 XP) for subsequent correct answers.
+ * - Streak resets on incorrect answer.
+ */
+function calculateXP(answers: QuizAnswer[]): number {
+  let totalXp = 0;
+  let currentStreak = 0;
+  const BASE_XP = 10;
+  const STREAK_THRESHOLD = 5;
+
+  answers.forEach((ans) => {
+    if (ans.isCorrect) {
+      currentStreak++;
+      if (currentStreak > STREAK_THRESHOLD) {
+        totalXp += BASE_XP * 2;
+      } else {
+        totalXp += BASE_XP;
+      }
+    } else {
+      currentStreak = 0;
+    }
+  });
+
+  return totalXp;
+}
+
+/**
+ * Saves a completed quiz attempt to Firestore.
+ */
+export async function saveQuizAttempt(
+  userId: string,
+  lectureId: string,
+  subjectId: string,
+  quizTitle: string,
+  answers: QuizAnswer[],
+  score: number
+) {
+  try {
+    const xpEarned = calculateXP(answers);
+    
+    const attemptData: Omit<QuizAttempt, "id"> = {
+      userId,
+      lectureId,
+      subjectId,
+      quizTitle,
+      answers,
+      score,
+      xpEarned,
+      completedAt: Timestamp.now()
+    };
+
+    const docRef = await addDoc(quizAttemptsCol, attemptData);
+    
+    // Also update the user's overall streak if applicable (Simplified: Increment if they studied today)
+    // In a real app, you'd check if they already studied today.
+    // For now, we prioritize saving the attempt and XP.
+    
+    return { id: docRef.id, xpEarned };
+  } catch (error) {
+    console.error("Error saving quiz attempt:", error);
+    throw error;
+  }
+}
 
 /**
  * Fetches the lecture document which contains the embedded questions.

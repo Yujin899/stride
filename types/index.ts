@@ -69,8 +69,10 @@ export interface QuizAttempt {
   userId: string;
   lectureId: string;
   subjectId: string;
+  quizTitle?: string;      // Added for better history display
   answers: QuizAnswer[];
   score: number;           // percentage 0-100
+  xpEarned: number;        // Added for leaderboard
   completedAt: Timestamp;
 }
 

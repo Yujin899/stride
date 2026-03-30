@@ -28,8 +28,12 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     const leaderboard: LeaderboardEntry[] = users.map(user => {
       const userQuizzes = quizzes.filter(q => q.userId === user.id);
 
-      // XP = Total sum of all quiz scores (1% = 1 XP)
-      const totalXp = userQuizzes.reduce((sum, q) => sum + (q.score || 0), 0);
+      // XP = Sum of xpEarned from all quiz attempts. 
+      // Fallback to legacy score-based XP (1% = 1 XP) if xpEarned is missing.
+      const totalXp = userQuizzes.reduce((sum, q) => {
+        const xp = q.xpEarned !== undefined ? q.xpEarned : (q.score || 0);
+        return sum + xp;
+      }, 0);
       
       const avgScore = userQuizzes.length > 0 
         ? Math.round(userQuizzes.reduce((sum, q) => sum + (q.score || 0), 0) / userQuizzes.length)
@@ -41,7 +45,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
         totalXp,
         avgScore,
         streak: user.streak || 0,
-        totalSessions: userQuizzes.length // Now represents total quizzes completed
+        totalSessions: userQuizzes.length 
       };
     });
 

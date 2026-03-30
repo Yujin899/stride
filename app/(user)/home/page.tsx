@@ -15,7 +15,6 @@ import {
   LayoutDashboard, 
   Trophy,
   Medal,
-  Target,
   Zap,
   Waves,
   Timer
@@ -23,7 +22,7 @@ import {
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import Image from "next/image";
-import { comfortaa, nunito } from "@/lib/fonts";
+import { nunito } from "@/lib/fonts";
 
 export default function HomePage() {
   const { user } = useAuthStore();
@@ -173,9 +172,9 @@ export default function HomePage() {
         </div>
 
         <div className="wooden-panel p-0! overflow-hidden border-2 border-border/10 shadow-warm">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
             <table className="w-full text-left border-collapse">
-              <thead>
+              <thead className="sticky top-0 z-20 bg-surface shadow-sm">
                 <tr className="bg-surface-active/30 border-b border-border/10">
                   <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 text-center w-16">Rank</th>
                   <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Scholar</th>
@@ -184,19 +183,19 @@ export default function HomePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/5">
-                {leaderboard.slice(0, 5).map((entry, index) => {
+                {leaderboard.map((entry, index) => {
                   const isCurrentUser = entry.userId === user?.id;
                   const rank = index + 1;
 
                   return (
                    <tr 
                      key={entry.userId} 
-                     className={`group transition-all hover:bg-primary/5 ${isCurrentUser ? "bg-primary/5" : ""}`}
+                     className={`group transition-all hover:bg-primary/5 ${isCurrentUser ? "bg-primary/10 border-l-4 border-l-primary" : ""}`}
                    >
                      <td className="px-4 py-4">
                        <div className="flex items-center justify-center">
                          {rank === 1 ? (
-                           <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center text-white shadow-sm">
+                           <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center text-white shadow-sm animate-pulse">
                               <Trophy size={12} />
                            </div>
                          ) : rank === 2 ? (
@@ -214,18 +213,24 @@ export default function HomePage() {
                      </td>
                      <td className="px-4 py-4">
                        <div className="flex items-center gap-3">
-                         <div className="relative w-8 h-8 rounded-full bg-surface border-2 border-border/10 overflow-hidden flex-shrink-0">
-                           <Image src="/tomato.png" alt="Avatar" fill className="object-cover p-1" />
+                         <div className="relative w-8 h-8 rounded-full border-2 border-border/10 overflow-hidden flex-shrink-0 bg-primary/5 flex items-center justify-center">
+                           <Image src="/tomato.png" alt="Avatar" width={24} height={24} className="object-contain" />
                          </div>
-                         <p className={`text-sm font-bold truncate ${isCurrentUser ? "text-primary" : "text-foreground"}`}>
-                           {entry.name}
-                         </p>
+                         <div className="flex flex-col min-w-0">
+                           <p className={`text-sm font-bold truncate ${isCurrentUser ? "text-primary" : "text-foreground"}`}>
+                             {entry.name} {isCurrentUser && <span className="text-[10px] font-black ml-1 text-primary opacity-60">(YOU)</span>}
+                           </p>
+                           <p className="text-[8px] font-bold text-muted-foreground/40">{entry.avgScore}% Average Score</p>
+                         </div>
                        </div>
                      </td>
                      <td className="px-4 py-4">
-                        <div className="flex items-center justify-center gap-1 text-orange-500 font-black text-sm">
-                          <Zap size={12} fill="currentColor" />
-                          {entry.totalXp}
+                        <div className="flex flex-col items-center justify-center gap-0">
+                          <div className="flex items-center gap-1 text-orange-500 font-black text-sm">
+                            <Zap size={12} fill="currentColor" />
+                            {entry.totalXp}
+                          </div>
+                          <span className="text-[8px] font-black text-muted-foreground/40 uppercase">Total XP</span>
                         </div>
                      </td>
                      <td className="px-4 py-4 text-right">
@@ -239,13 +244,11 @@ export default function HomePage() {
               </tbody>
             </table>
           </div>
-          {leaderboard.length > 5 && (
-            <div className="p-4 bg-surface-active/10 border-t border-border/5 text-center">
-               <p className="text-[10px] font-bold text-muted-foreground italic tracking-widest uppercase">
-                 And {leaderboard.length - 5} more competing in the arena...
-               </p>
-            </div>
-          )}
+          <div className="p-4 bg-primary/5 border-t border-border/5 text-center">
+             <p className="text-[10px] font-bold text-primary italic tracking-widest uppercase">
+               Rankings updated in real-time based on scholarly merit
+             </p>
+          </div>
         </div>
       </section>
 

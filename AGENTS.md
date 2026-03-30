@@ -11,5 +11,5 @@ Heed deprecation notices.
 - App Router only — no pages/ directory
 - Firebase Auth — no NextAuth, no useSession
 - Firebase Firestore — no MongoDB, no Mongoose
-- Dark theme only — class="dark" on html tag always
+- Light warm mode only — "The Woodland Desk" theme (see DESIGN.md), never dark mode
 <!-- END:nextjs-agent-rules -->

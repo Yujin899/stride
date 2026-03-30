@@ -6,9 +6,9 @@ import Image from "next/image";
 import { Comfortaa, Nunito } from "next/font/google";
 import { ChevronLeft, CheckCircle2, XCircle, Home, RefreshCcw, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { fetchQuiz, saveMistake } from "@/lib/quiz-service";
+import { fetchQuiz, saveMistake, saveQuizAttempt } from "@/lib/quiz-service";
 import { useAuthStore } from "@/store/authStore";
-import { Lecture, Quiz } from "@/types";
+import { Lecture, Quiz, QuizAnswer } from "@/types";
 
 const comfortaa = Comfortaa({ subsets: ["latin"], weight: ["700"] });
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
@@ -28,6 +28,9 @@ export default function QuizPage() {
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [userAnswers, setUserAnswers] = useState<QuizAnswer[]>([]);
+  const [xpEarned, setXpEarned] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const activeBulletRef = useRef<HTMLDivElement>(null);
 
@@ -77,10 +80,18 @@ export default function QuizPage() {
     setIsAnswered(true);
 
     const isCorrect = index === currentQuestion.correctIndex;
+    
+    // Track answer for XP calculation
+    setUserAnswers(prev => [...prev, {
+      questionId: currentQuestion.id,
+      selectedIndex: index,
+      isCorrect
+    }]);
+
     if (isCorrect) {
       setScore(prev => prev + 1);
     } else if (user) {
-      // Background save mistake with the index of the wrong answer chosen
+      // Background save mistake
       saveMistake(user.id, lecture!.id, lecture!.subjectId, currentQuestion.id, index).catch(err => {
         console.error("Failed to save mistake:", err);
       });
@@ -104,8 +115,32 @@ export default function QuizPage() {
     if (isFinished && questions.length > 0) {
       const percentage = (score / questions.length) * 100;
       setIsPassed(percentage >= 60);
+
+      // Save Attempt
+      if (user && !isSaving) {
+        const saveAttempt = async () => {
+          setIsSaving(true);
+          try {
+            const title = activeQuiz ? activeQuiz.title : `Lecture ${lecture?.order}`;
+            const result = await saveQuizAttempt(
+              user.id,
+              lecture!.id,
+              lecture!.subjectId,
+              title,
+              userAnswers,
+              percentage
+            );
+            setXpEarned(result.xpEarned);
+          } catch (err) {
+            console.error("Failed to save quiz attempt:", err);
+          } finally {
+            setIsSaving(false);
+          }
+        };
+        saveAttempt();
+      }
     }
-  }, [isFinished, score, questions.length]);
+  }, [isFinished, score, questions.length, user, userAnswers, lecture, activeQuiz, isSaving]);
 
   if (loading) {
     return (
@@ -152,14 +187,26 @@ export default function QuizPage() {
             </p>
           </div>
 
-          <div className={`rounded-3xl p-6 border-2 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] ${
-            isPassed ? "bg-surface-active border-border/20" : "bg-tomato/5 border-tomato/20"
-          }`}>
-            <div className={`text-4xl font-black mb-1 ${isPassed ? "text-(--primary)" : "text-tomato"}`}>
-              {score} / {questions.length}
+          <div className="grid grid-cols-2 gap-4">
+            <div className={`rounded-3xl p-4 border-2 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] ${
+              isPassed ? "bg-surface-active border-border/20" : "bg-tomato/5 border-tomato/20"
+            }`}>
+              <div className={`text-2xl font-black mb-1 ${isPassed ? "text-(--primary)" : "text-tomato"}`}>
+                {score} / {questions.length}
+              </div>
+              <div className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                Score: {percentage}%
+              </div>
             </div>
-            <div className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
-              Score: {percentage}%
+
+            <div className="rounded-3xl p-4 border-2 border-orange-200 bg-orange-50 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
+              <div className="text-2xl font-black mb-1 text-orange-600 flex items-center justify-center gap-1">
+                <Sparkles size={16} className="text-orange-400" />
+                {isSaving ? "..." : `+${xpEarned}`}
+              </div>
+              <div className="text-[8px] font-black text-orange-400 uppercase tracking-[0.2em]">
+                XP Gained
+              </div>
             </div>
           </div>
 
@@ -189,6 +236,8 @@ export default function QuizPage() {
                     setIsAnswered(false);
                     setSelectedOption(null);
                     setIsPassed(null);
+                    setUserAnswers([]);
+                    setXpEarned(0);
                   }}
                   className="btn-primary w-full py-4 text-sm tracking-widest uppercase flex items-center justify-center gap-2 bg-tomato hover:bg-tomato/90 border-tomato/20 shadow-tomato/20"
                 >
