@@ -26,17 +26,28 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 
     // 3. Aggregate data per user
     const leaderboard: LeaderboardEntry[] = users.map(user => {
-      const userQuizzes = quizzes.filter(q => q.userId === user.id);
+      const allUserQuizzes = quizzes.filter(q => q.userId === user.id);
+      
+      // Filter unique quizzes: Take the best attempt for each unique quiz (lectureId + title)
+      // This prevents stats inflation from duplicate submissions or repeated attempts.
+      const uniqueBestQuizzes = Array.from(
+        allUserQuizzes.reduce((map, q) => {
+          const key = `${q.lectureId}-${q.quizTitle}`;
+          const currentBest = map.get(key);
+          if (!currentBest || (q.xpEarned || 0) > (currentBest.xpEarned || 0)) {
+            map.set(key, q);
+          }
+          return map;
+        }, new Map<string, QuizAttempt>()).values()
+      );
 
-      // XP = Sum of xpEarned from all quiz attempts. 
-      // Fallback to legacy score-based XP (1% = 1 XP) if xpEarned is missing.
-      const totalXp = userQuizzes.reduce((sum, q) => {
+      const totalXp = uniqueBestQuizzes.reduce((sum, q) => {
         const xp = q.xpEarned !== undefined ? q.xpEarned : (q.score || 0);
         return sum + xp;
       }, 0);
       
-      const avgScore = userQuizzes.length > 0 
-        ? Math.round(userQuizzes.reduce((sum, q) => sum + (q.score || 0), 0) / userQuizzes.length)
+      const avgScore = uniqueBestQuizzes.length > 0 
+        ? Math.round(uniqueBestQuizzes.reduce((sum, q) => sum + (q.score || 0), 0) / uniqueBestQuizzes.length)
         : 0;
 
       return {
@@ -45,7 +56,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
         totalXp,
         avgScore,
         streak: user.streak || 0,
-        totalSessions: userQuizzes.length 
+        totalSessions: uniqueBestQuizzes.length 
       };
     });
 

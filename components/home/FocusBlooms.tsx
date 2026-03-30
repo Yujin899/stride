@@ -12,7 +12,18 @@ interface FocusBloomsProps {
 export default function FocusBlooms({ quizzes }: FocusBloomsProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  if (quizzes.length === 0) {
+  // Filter unique quizzes per day to avoid inflated stats from multiple attempts
+  const uniqueQuizzes = Array.from(
+    quizzes.reduce((map, quiz) => {
+      const key = `${quiz.lectureId}-${quiz.quizTitle}`;
+      if (!map.has(key) || (quiz.score || 0) > (map.get(key)!.score || 0)) {
+        map.set(key, quiz);
+      }
+      return map;
+    }, new Map<string, QuizAttempt>()).values()
+  );
+
+  if (uniqueQuizzes.length === 0) {
     return (
       <div className="wooden-panel p-4! bg-white/60 backdrop-blur-sm rounded-2xl border-2 border-primary/10 shadow-sm flex flex-col items-center sm:items-end gap-3 min-w-[200px]">
         <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Today&apos;s Focus Blooms</span>
@@ -32,7 +43,7 @@ export default function FocusBlooms({ quizzes }: FocusBloomsProps) {
         className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 w-full justify-center sm:justify-end mask-fade-edges"
         style={{ scrollSnapType: "x mandatory" }}
       >
-        {quizzes.map((quiz, i) => {
+        {uniqueQuizzes.map((quiz, i) => {
           const score = quiz.score || 0;
           const opacity = Math.max(0.3, score / 100);
           
@@ -61,7 +72,7 @@ export default function FocusBlooms({ quizzes }: FocusBloomsProps) {
       </div>
 
       <span className="text-[10px] font-bold text-secondary">
-        {quizzes.length} Quiz{quizzes.length > 1 ? 'zes' : ''} Completed
+        {uniqueQuizzes.length} Quiz{uniqueQuizzes.length > 1 ? 'zes' : ''} Completed
       </span>
       
       <style jsx>{`

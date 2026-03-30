@@ -110,37 +110,37 @@ export default function QuizPage() {
 
   // 4. Handle Completion Analysis
   const [isPassed, setIsPassed] = useState<boolean | null>(null);
+  const hasSubmitted = useRef(false);
 
   useEffect(() => {
-    if (isFinished && questions.length > 0) {
-      const percentage = (score / questions.length) * 100;
+    if (isFinished && questions.length > 0 && user && !hasSubmitted.current) {
+      hasSubmitted.current = true;
+      const percentage = Math.round((score / questions.length) * 100);
       setIsPassed(percentage >= 60);
 
-      // Save Attempt
-      if (user && !isSaving) {
-        const saveAttempt = async () => {
-          setIsSaving(true);
-          try {
-            const title = activeQuiz ? activeQuiz.title : `Lecture ${lecture?.order}`;
-            const result = await saveQuizAttempt(
-              user.id,
-              lecture!.id,
-              lecture!.subjectId,
-              title,
-              userAnswers,
-              percentage
-            );
-            setXpEarned(result.xpEarned);
-          } catch (err) {
-            console.error("Failed to save quiz attempt:", err);
-          } finally {
-            setIsSaving(false);
-          }
-        };
-        saveAttempt();
-      }
+      const saveAttempt = async () => {
+        setIsSaving(true);
+        try {
+          const title = activeQuiz ? activeQuiz.title : `Lecture ${lecture?.order}`;
+          const result = await saveQuizAttempt(
+            user.id,
+            lecture!.id,
+            lecture!.subjectId,
+            title,
+            userAnswers,
+            percentage
+          );
+          setXpEarned(result.xpEarned);
+        } catch (err) {
+          console.error("Failed to save quiz attempt:", err);
+          hasSubmitted.current = false; // Allow retry on failure
+        } finally {
+          setIsSaving(false);
+        }
+      };
+      saveAttempt();
     }
-  }, [isFinished, score, questions.length, user, userAnswers, lecture, activeQuiz, isSaving]);
+  }, [isFinished, questions.length, user, lecture, activeQuiz, score, userAnswers]);
 
   if (loading) {
     return (
