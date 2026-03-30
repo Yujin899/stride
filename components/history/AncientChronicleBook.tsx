@@ -4,35 +4,38 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { toDate } from "@/lib/firebase/collections";
-import { StudySession } from "@/types";
+import { QuizAttempt } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import { handwriting, blackletter } from "@/lib/fonts";
 import { X } from "lucide-react";
 const FUNNY_TEMPLATES = [
-  (name: string, mins: number, subject: string, date: string, lecture: string) => 
-    `Hear Ye! The Tomato Council is utterly baffled. The Scholar ${name} actually spent ${mins} minutes focused on ${subject} during "${lecture}". On ${date}, the ink was dry, but the focus was fresh!`,
+  (name: string, correct: number, total: number, xp: number, date: string, title: string) => 
+    `Hear Ye! The Tomato Council is utterly baffled. The Scholar ${name} braved the trial of "${title}" and emerged with ${correct} correct answers out of ${total}. On ${date}, they secured ${xp} XP and a legacy that will last generations!`,
   
-  (name: string, mins: number, subject: string, date: string, lecture: string) => 
-    `By the grace of the Great Vine! On ${date}, ${name} entered a deep trance for ${mins} minutes. The subject? ${subject}. The result? A breakthrough in "${lecture}" that even the Elder Seeds couldn't predict.`,
+  (name: string, correct: number, total: number, xp: number, date: string, title: string) => 
+    `By the grace of the Great Vine! On ${date}, ${name} conquered "${title}" with a precision of ${correct}/${total}. The result? ${xp} XP and a breakthrough that even the Elder Seeds couldn't predict. The path to Mastery is clear!`,
   
-  (name: string, mins: number, subject: string, date: string, lecture: string) => 
-    `${name}, you absolute legend. ${mins} minutes of pure ${subject} on ${date}. The parchment practically smoked as you recorded your progress in "${lecture}". The Scrivener's hand is tired!`,
+  (name: string, correct: number, total: number, xp: number, date: string, title: string) => 
+    `${name}, you absolute legend. On ${date}, you tackled "${title}" and claimed ${xp} XP with ${correct} successful answers out of ${total}. The parchment practically smoked as the scribes recorded your triumph!`,
   
-  (name: string, mins: number, subject: string, date: string, lecture: string) => 
-    `Alert the guards! ${name} has been caught studying ${subject} for ${mins} minutes straight. This occurred on ${date} during "${lecture}". The Tomato Kingdom has never seen such scholarly discipline!`,
+  (name: string, correct: number, total: number, xp: number, date: string, title: string) => 
+    `Alert the guards! ${name} has been caught achieving excellence in "${title}". This occurred on ${date}, where they secured ${correct}/${total} correct and gained ${xp} XP. The Tomato Kingdom has never seen such scholarly discipline!`,
   
-  (name: string, mins: number, subject: string, date: string, lecture: string) => 
-    `On the sacred day of ${date}, the air smelled of basil as ${name} focused for ${mins} minutes. ${subject} was the challenge, and "${lecture}" was the scroll. Keep this up and you'll be a Master Ketchup in no time!`,
+  (name: string, correct: number, total: number, xp: number, date: string, title: string) => 
+    `On the sacred day of ${date}, the air smelled of basil as ${name} faced the challenge of "${title}". With ${correct} correct out of ${total}, they earned ${xp} XP. Keep this up and you'll be a Master Ketchup in no time!`,
 ];
 
-function buildMessage(session: StudySession, name: string): string {
-  const date = toDate(session.completedAt);
+function buildMessage(attempt: QuizAttempt, name: string): string {
+  const date = toDate(attempt.completedAt);
   const dateStr = date ? format(date, "MMMM do, yyyy") : "a foggy past";
-  const subject = session.subjectName || "The Secret Sauce";
-  const lecture = session.lectureTitle?.slice(0, 40) || "The Unnamed Scroll";
+  const title = attempt.quizTitle || "The Unnamed Scroll";
   
-  const hash = (session.id?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || session.durationMinutes) % FUNNY_TEMPLATES.length;
-  return FUNNY_TEMPLATES[hash](name, session.durationMinutes, subject, dateStr, lecture);
+  const correctCount = attempt.answers.filter(a => a.isCorrect).length;
+  const totalCount = attempt.answers.length;
+  const xp = attempt.xpEarned || 0;
+  
+  const hash = (attempt.id?.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || xp) % FUNNY_TEMPLATES.length;
+  return FUNNY_TEMPLATES[hash](name, correctCount, totalCount, xp, dateStr, title);
 }
 
 // ─── SVG FILTERS ─────────────────────────────────────────────────────────────
@@ -167,16 +170,16 @@ const PageText = ({ text, textKey }: { text: string; textKey: string }) => (
 
 // ─── PARCHMENT ────────────────────────────────────────────────────────────────
 const MagicalParchment = ({
-  session, onRubComplete, isLast,
+  attempt, onRubComplete, isLast,
 }: {
-  session?: StudySession;
+  attempt?: QuizAttempt;
   onRubComplete: (x: number, y: number) => void;
   isLast: boolean;
 }) => {
   const { user } = useAuthStore();
   const studentName = user?.name || "Scholar";
-  const message = session ? buildMessage(session, studentName) : "The tome awaits its first scholar...";
-  const textKey = session?.id ?? "empty";
+  const message = attempt ? buildMessage(attempt, studentName) : "The tome awaits its first scholar...";
+  const textKey = attempt?.id ?? "empty";
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -339,9 +342,9 @@ const BookCover = ({ isOpen, onOpen }: { isOpen: boolean; onOpen: () => void }) 
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function AncientChronicleBook({
-  sessions,
+  attempts,
 }: {
-  sessions: StudySession[];
+  attempts: QuizAttempt[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -367,8 +370,8 @@ export default function AncientChronicleBook({
     });
     setParticles((p) => [...p, ...burst]);
     setTimeout(() => setParticles((p) => p.filter((pt) => !burst.find((b) => b.id === pt.id))), 1600);
-    setCurrentPage((p) => Math.min(p + 1, sessions.length - 1));
-  }, [sessions.length]);
+    setCurrentPage((p) => Math.min(p + 1, attempts.length - 1));
+  }, [attempts.length]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -377,8 +380,8 @@ export default function AncientChronicleBook({
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen]);
 
-  const currentSession = sessions[currentPage];
-  const isLastPage = currentPage >= sessions.length - 1;
+  const currentAttempt = attempts[currentPage];
+  const isLastPage = currentPage >= attempts.length - 1;
 
   return (
     <>
@@ -402,7 +405,7 @@ export default function AncientChronicleBook({
 
           <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: "2px 6px 6px 2px" }}>
             <MagicalParchment
-              session={currentSession}
+              attempt={currentAttempt}
               onRubComplete={handleRubComplete}
               isLast={isLastPage}
             />
@@ -416,12 +419,12 @@ export default function AncientChronicleBook({
           <BookCover isOpen={isOpen} onOpen={() => setIsOpen(true)} />
 
           <AnimatePresence>
-            {isOpen && sessions.length > 0 && (
+            {isOpen && attempts.length > 0 && (
               <motion.p
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className={`${handwriting.className} absolute -top-7 right-0 text-[#5C3800]/55 pointer-events-none`}
                 style={{ fontSize: "clamp(0.6rem, 1.8vw, 0.8rem)" }}>
-                {currentPage + 1} / {sessions.length}
+                {currentPage + 1} / {attempts.length}
               </motion.p>
             )}
           </AnimatePresence>

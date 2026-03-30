@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getUserSessions } from "@/lib/session-service";
+import { getUserQuizAttempts } from "@/lib/quiz-service";
 import { useAuthStore } from "@/store/authStore";
-import { StudySession } from "@/types";
+import { QuizAttempt } from "@/types";
 import { comfortaa } from "@/lib/fonts";
 import AncientChronicleBook from "@/components/history/AncientChronicleBook";
-import { Trophy, Clock, ScrollText } from "lucide-react";
+import { Trophy, BookOpen, ScrollText } from "lucide-react";
 
-// Removed consolidateSessions - user wants individual entries per session.
+// The History Book now chronicles quiz accomplishments rather than focus timer sessions.
 
 export default function HistoryPage() {
   const { user } = useAuthStore();
-  const [sessions, setSessions] = useState<StudySession[]>([]);
+  const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,10 +20,10 @@ export default function HistoryPage() {
 
     const fetchData = async () => {
       try {
-        const sessionsData = await getUserSessions(user.id);
-        setSessions(sessionsData);
+        const quizData = await getUserQuizAttempts(user.id);
+        setAttempts(quizData);
       } catch (error) {
-        console.error("Error fetching history:", error);
+        console.error("Error fetching quiz history:", error);
       } finally {
         setLoading(false);
       }
@@ -32,8 +32,8 @@ export default function HistoryPage() {
     fetchData();
   }, [user]);
 
-  const totalMinutes = sessions.reduce((acc, s) => acc + s.durationMinutes, 0);
-  const totalXP = Math.floor(totalMinutes / 10);
+  const totalXP = attempts.reduce((acc, q) => acc + (q.xpEarned || 0), 0);
+  const totalQuizzes = attempts.length;
 
   if (!user) return (
     <div className="py-20 text-center text-muted-foreground font-bold italic">
@@ -61,10 +61,10 @@ export default function HistoryPage() {
             </div>
           </div>
           <div className="wooden-panel px-6 py-3 flex items-center gap-3 rounded-2xl border border-[rgba(212,184,122,0.2)]">
-            <Clock className="text-tomato" size={24} />
+            <BookOpen className="text-tomato" size={24} />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Focus Hours</p>
-              <p className="text-xl font-black text-tomato">{Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Scholarly Quests</p>
+              <p className="text-xl font-black text-tomato">{totalQuizzes}</p>
             </div>
           </div>
         </div>
@@ -76,14 +76,14 @@ export default function HistoryPage() {
           <div className="py-20 text-center text-muted-foreground font-bold italic animate-pulse">
             Consulting your personal tomes...
           </div>
-        ) : sessions.length === 0 ? (
+        ) : attempts.length === 0 ? (
           <div className="py-20 text-center space-y-4">
             <ScrollText size={48} className="mx-auto text-[#EDE8DC]" />
-            <p className="text-muted-foreground font-bold">Your chronicle pages are empty. <br/>A new legend begins with your first focus.</p>
+            <p className="text-muted-foreground font-bold">Your chronicle pages are empty. <br/>A new legend begins with your first scholarly quest.</p>
           </div>
         ) : (
           <div className="w-full overflow-x-hidden md:overflow-x-visible">
-            <AncientChronicleBook sessions={sessions} />
+            <AncientChronicleBook attempts={attempts} />
           </div>
         )}
       </div>

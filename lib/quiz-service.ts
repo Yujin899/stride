@@ -70,6 +70,26 @@ export async function saveQuizAttempt(
 }
 
 /**
+ * Fetches quiz attempts for a specific user, sorted by date (newest first).
+ */
+export async function getUserQuizAttempts(userId: string): Promise<QuizAttempt[]> {
+  try {
+    const q = query(quizAttemptsCol, where("userId", "==", userId));
+    const snap = await getDocs(q);
+    const data = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as QuizAttempt));
+    
+    return data.sort((a, b) => {
+      const dateA = a.completedAt?.toDate?.()?.getTime() || 0;
+      const dateB = b.completedAt?.toDate?.()?.getTime() || 0;
+      return dateB - dateA;
+    });
+  } catch (error) {
+    console.error("Error fetching user quiz attempts:", error);
+    return [];
+  }
+}
+
+/**
  * Fetches the lecture document which contains the embedded questions.
  * @param lectureId The ID of the lecture to fetch.
  */
