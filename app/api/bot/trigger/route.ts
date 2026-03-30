@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionToken } from "@/lib/auth/session";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { getSessionToken, decryptSession } from "@/lib/auth/session";
+import { adminDb } from "@/lib/firebase/admin";
 import { triggerBotCron } from "@/lib/bot-service";
 
 export async function POST(_req: NextRequest) {
@@ -12,8 +12,14 @@ export async function POST(_req: NextRequest) {
     }
 
     console.log("Bot Trigger: Verifying token...");
-    const decoded = await adminAuth.verifyIdToken(token);
-    const userId = decoded.uid;
+    const decoded = await decryptSession(token);
+    const userId = decoded.sub as string;
+    
+    if (!userId) {
+      console.error("Bot Trigger: Token missing user ID");
+      return NextResponse.json({ error: "Invalid Session" }, { status: 401 });
+    }
+    
     console.log("Bot Trigger: Token verified for UID", userId);
 
     // Check role in Firestore

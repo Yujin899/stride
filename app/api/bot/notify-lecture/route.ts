@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionToken } from "@/lib/auth/session";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { getSessionToken, decryptSession } from "@/lib/auth/session";
+import { adminDb } from "@/lib/firebase/admin";
 import { notifyNewLecture } from "@/lib/bot-service";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = await getSessionToken();
+    const cookieToken = await getSessionToken();
+    const authHeader = req.headers.get("authorization");
+    const token = cookieToken || authHeader?.replace("Bearer ", "");
+
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const decoded = await adminAuth.verifyIdToken(token);
-    const userId = decoded.uid;
+    const decoded = await decryptSession(token);
+    const userId = decoded.sub as string;
+    
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid Session" }, { status: 401 });
+    }
 
     // Check role in Firestore
     const userDoc = await adminDb.collection("users").doc(userId).get();

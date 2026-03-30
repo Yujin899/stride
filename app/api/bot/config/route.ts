@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
-import { getSessionToken } from "@/lib/auth/session";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { getSessionToken, decryptSession } from "@/lib/auth/session";
+import { adminDb } from "@/lib/firebase/admin";
 import { getBotConfig, updateBotConfig } from "@/lib/bot-service";
 
 /**
@@ -12,8 +12,11 @@ async function verifyAdmin() {
   if (!token) return null;
 
   try {
-    const decoded = await adminAuth.verifyIdToken(token);
-    const userId = decoded.uid;
+    const decoded = await decryptSession(token);
+    const userId = decoded.sub as string;
+    
+    if (!userId) return null;
+
     const userDoc = await adminDb.collection("users").doc(userId).get();
     
     if (userDoc.exists && userDoc.data()?.role === "admin") {
