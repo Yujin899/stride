@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { auth, db } from "@/lib/firebase/config";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuthStore } from "@/store/authStore";
 
@@ -29,6 +29,13 @@ export default function AuthInitializer({ children }: { children: React.ReactNod
             });
           } else {
             console.warn("AuthInitializer: No Firestore document for UID:", firebaseUser.uid);
+            
+            // Forced logout if user exists in Auth but not in Firestore
+            // This prevents an infinite redirect loop between the middleware (token valid) 
+            // and the app (Firestore data missing)
+            await signOut(auth);
+            await fetch("/api/auth/logout", { method: "POST" });
+            
             setUser(null);
           }
         } catch (error) {
